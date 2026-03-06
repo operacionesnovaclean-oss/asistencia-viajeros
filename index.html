@@ -381,6 +381,54 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         </div>
       </div>
 
+      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📅 Inicio de Cuotas</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.8rem;">Mes y año en que pasó a <strong style="color:var(--text);">Prospecto</strong> (o categoría que paga cuotas). Los meses anteriores como Simpatizante no generan deuda.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Mes inicio de cuotas</label>
+          <select id="mCuotasMes">
+            <option value="">— Desde enero —</option>
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Año inicio de cuotas</label>
+          <input type="number" id="mCuotasAnio" placeholder="2025" min="2020" max="2099">
+        </div>
+      </div>
+
+      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">⏸️ Licencia</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.8rem;">Durante la licencia los meses no generan deuda. Puede abarcar varios años.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Mes inicio licencia</label>
+          <select id="mLicenciaInicio">
+            <option value="">— Sin licencia —</option>
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Año inicio licencia</label>
+          <input type="number" id="mLicenciaInicioAnio" placeholder="2025" min="2020" max="2099">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Mes fin licencia</label>
+          <select id="mLicenciaFin">
+            <option value="">— Sin licencia —</option>
+            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+            <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+            <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Año fin licencia</label>
+          <input type="number" id="mLicenciaFinAnio" placeholder="2025" min="2020" max="2099">
+        </div>
+      </div>
+
       <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Moto</div>
       <div class="form-row">
         <div class="form-group"><label>Marca / Modelo</label><input type="text" id="mBike" placeholder="Ej. Harley-Davidson Sportster 1200"></div>
@@ -961,6 +1009,12 @@ function openAddMember(){
   document.getElementById('mTipo').value='Tropa';
   document.getElementById('mEmergParentesco').value='';
   document.getElementById('mSangre').value='';
+  document.getElementById('mCuotasMes').value='';
+  document.getElementById('mCuotasAnio').value='';
+  document.getElementById('mLicenciaInicio').value='';
+  document.getElementById('mLicenciaInicioAnio').value='';
+  document.getElementById('mLicenciaFin').value='';
+  document.getElementById('mLicenciaFinAnio').value='';
   openModal('modalMember');
 }
 function editMember(id){
@@ -977,6 +1031,12 @@ function editMember(id){
   document.getElementById('mBike').value=m.bike||'';
   document.getElementById('mPlaca').value=m.placa||'';
   document.getElementById('mYear').value=m.year||'';
+  document.getElementById('mCuotasMes').value=m.cuotasMes||'';
+  document.getElementById('mCuotasAnio').value=m.cuotasAnio||'';
+  document.getElementById('mLicenciaInicio').value=m.licenciaInicio||'';
+  document.getElementById('mLicenciaInicioAnio').value=m.licenciaInicioAnio||'';
+  document.getElementById('mLicenciaFin').value=m.licenciaFin||'';
+  document.getElementById('mLicenciaFinAnio').value=m.licenciaFinAnio||'';
   document.getElementById('mEmergNombre').value=m.emergNombre||'';
   document.getElementById('mEmergParentesco').value=m.emergParentesco||'';
   document.getElementById('mEmergTel').value=m.emergTel||'';
@@ -998,6 +1058,12 @@ async function saveMember(){
     bike:document.getElementById('mBike').value.trim(),
     placa:document.getElementById('mPlaca').value.trim(),
     year:document.getElementById('mYear').value.trim(),
+    cuotasMes:parseInt(document.getElementById('mCuotasMes').value)||0,
+    cuotasAnio:parseInt(document.getElementById('mCuotasAnio').value)||0,
+    licenciaInicio:parseInt(document.getElementById('mLicenciaInicio').value)||0,
+    licenciaInicioAnio:parseInt(document.getElementById('mLicenciaInicioAnio').value)||0,
+    licenciaFin:parseInt(document.getElementById('mLicenciaFin').value)||0,
+    licenciaFinAnio:parseInt(document.getElementById('mLicenciaFinAnio').value)||0,
     emergNombre:document.getElementById('mEmergNombre').value.trim(),
     emergParentesco:document.getElementById('mEmergParentesco').value,
     emergTel:document.getElementById('mEmergTel').value.trim(),
@@ -1184,6 +1250,37 @@ async function saveAttendance(eventId){
 // ── CUOTAS ──
 function getMesAbono(cuotas,memberId,mes){return parseFloat((cuotas[memberId]||{})[mes])||0;}
 
+// Returns 'normal' | 'simpatizante' | 'licencia'
+// anio = the year being rendered in cuotas view
+function getMesEstadoMiembro(m, mes, anio){
+  anio = anio || new Date().getFullYear();
+
+  // ── Simpatizante check ──
+  // cuotasMes/cuotasAnio = month/year when they started paying (became Prospecto)
+  const cMes = parseInt(m.cuotasMes)||0;
+  const cAnio = parseInt(m.cuotasAnio)||0;
+  if(cMes && cAnio){
+    // The rendered year is before the start year → all months are simpatizante
+    if(anio < cAnio) return 'simpatizante';
+    // Same year: months before the start month are simpatizante
+    if(anio === cAnio && mes < cMes) return 'simpatizante';
+  }
+
+  // ── Licencia check ──
+  const li = parseInt(m.licenciaInicio)||0;
+  const liA = parseInt(m.licenciaInicioAnio)||0;
+  const lf = parseInt(m.licenciaFin)||0;
+  const lfA = parseInt(m.licenciaFinAnio)||0;
+  if(li && liA){
+    const startVal = liA*100 + li;  // e.g. 202503
+    const endVal   = (lf && lfA) ? lfA*100 + lf : 999999;
+    const curVal   = anio*100 + mes;
+    if(curVal >= startVal && curVal <= endVal) return 'licencia';
+  }
+
+  return 'normal';
+}
+
 function renderCuotas(){
   const {chapter,role}=currentUser;
   const canEdit=role==='secretary';
@@ -1195,14 +1292,15 @@ function renderCuotas(){
   const mesActual=new Date().getMonth()+1;
   const mesesTranscurridos=anio<new Date().getFullYear()?12:Math.min(mesActual,12);
 
-  let totalCobrado=0,totalAdeudado=0;
+  let totalCobrado=0,totalAdeudado=0,totalEsperado=0;
   members.forEach(m=>{
     for(let i=1;i<=mesesTranscurridos;i++){
+      const estado=getMesEstadoMiembro(m,i);
+      if(estado!=='normal') continue;
       const ab=getMesAbono(cuotas,m.id,i);
-      totalCobrado+=ab;totalAdeudado+=Math.max(0,valor-ab);
+      totalCobrado+=ab; totalAdeudado+=Math.max(0,valor-ab); totalEsperado+=valor;
     }
   });
-  const totalEsperado=members.length*mesesTranscurridos*valor;
   const pctCobrado=totalEsperado>0?Math.round(totalCobrado/totalEsperado*100):0;
 
   document.getElementById('cuotasContent').innerHTML=`
@@ -1262,31 +1360,42 @@ function renderCuotas(){
           const cells=MONTHS.map((_,i)=>{
             const mes=i+1;const ab=getMesAbono(cuotas,m.id,mes);
             const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
+            const estadoM=getMesEstadoMiembro(m,mes,anio);
+            const esExento=estadoM!=='normal';
             const pagado=ab>=valor&&valor>0;const parcial=ab>0&&ab<valor;
-            totalPag+=ab;
+            if(!esFuturo&&!esExento) totalPag+=ab;
             let bc,bt,bb,bg;
             if(esFuturo){bc='var(--muted)';bt='—';bb='var(--border)';bg='transparent';}
+            else if(estadoM==='simpatizante'){bc='#555';bt='S';bb='#444';bg='transparent';}
+            else if(estadoM==='licencia'){bc='var(--blue)';bt='L';bb='var(--blue)';bg='rgba(26,111,196,0.15)';}
             else if(pagado){bc='var(--success)';bt='✓';bb='var(--success)';bg='rgba(46,204,113,0.15)';}
             else if(parcial){bc='var(--warning)';bt='~';bb='var(--warning)';bg='rgba(243,156,18,0.15)';}
             else{bc='var(--border)';bt='·';bb='var(--border)';bg='transparent';}
+            const title=estadoM==='licencia'?`${MONTHS_FULL[i]}: Licencia`:estadoM==='simpatizante'?`${MONTHS_FULL[i]}: Simpatizante (sin cuota)`:`${MONTHS_FULL[i]}: $${ab.toFixed(2)} / $${valor.toFixed(2)}`;
             return `<td style="text-align:center;padding:0.35rem 0.2rem;">
               ${esFuturo
                 ?`<div style="width:30px;height:30px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;margin:auto;opacity:0.25;"><span style="font-size:0.65rem;color:var(--muted);">—</span></div>`
+                :esExento
+                  ?`<div style="width:30px;height:30px;border-radius:50%;border:2px solid ${bb};background:${bg};display:flex;align-items:center;justify-content:center;margin:auto;opacity:0.7;" title="${title}">
+                     <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
+                   </div>`
                 :canEdit
                   ?`<div style="cursor:pointer;width:30px;height:30px;border-radius:50%;border:2px solid ${bb};background:${bg};display:flex;align-items:center;justify-content:center;margin:auto;transition:all 0.2s;"
                        onclick="abrirAbonoModal('${m.id}',${mes},'${m.name.replace(/'/g,"\\'")}',${ab})"
-                       title="${MONTHS_FULL[i]}: $${ab.toFixed(2)} / $${valor.toFixed(2)}">
+                       title="${title}">
                      <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
                    </div>`
                   :`<div style="width:30px;height:30px;border-radius:50%;border:2px solid ${bb};background:${bg};display:flex;align-items:center;justify-content:center;margin:auto;">
                      <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
                    </div>`
               }
-              ${(!esFuturo&&ab>0&&ab<valor)?`<div style="font-size:0.58rem;color:var(--warning);text-align:center;">$${ab.toFixed(0)}</div>`:''}
+              ${(!esFuturo&&!esExento&&ab>0&&ab<valor)?`<div style="font-size:0.58rem;color:var(--warning);text-align:center;">$${ab.toFixed(0)}</div>`:''}
             </td>`;
           }).join('');
-          const totalAd=Math.max(0,mesesTranscurridos*valor-totalPag);
-          const alDia=totalAd===0&&mesesTranscurridos>0;
+          let mesesObligatorios=0;
+          for(let i=1;i<=mesesTranscurridos;i++){if(getMesEstadoMiembro(m,i)==='normal')mesesObligatorios++;}
+          const totalAd=Math.max(0,mesesObligatorios*valor-totalPag);
+          const alDia=totalAd===0&&mesesObligatorios>0;
           return `<tr>
             <td><div style="font-weight:500;font-size:0.85rem;">${m.name}</div>${m.nick?`<div style="font-size:0.68rem;color:var(--muted);">"${m.nick}"</div>`:''}</td>
             ${cells}
@@ -1297,9 +1406,11 @@ function renderCuotas(){
         }).join('')}</tbody>
       </table></div>
       <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;padding-top:0.8rem;border-top:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--success);background:rgba(46,204,113,0.15);"></div>Pagado completo</div>
-        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--warning);background:rgba(243,156,18,0.15);"></div>Abono parcial</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--success);background:rgba(46,204,113,0.15);"></div>Pagado</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--warning);background:rgba(243,156,18,0.15);"></div>Parcial</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--border);"></div>Sin pago</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--blue);background:rgba(26,111,196,0.15);display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:#5b9bd5;font-weight:700;">L</div>Licencia</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid #333;"></div>Simpatizante</div>
       </div>
       <div style="margin-top:1.2rem;border-top:1px solid var(--border);padding-top:1rem;">
         <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;">Resumen por Mes</div>
@@ -1309,8 +1420,8 @@ function renderCuotas(){
             if(esFuturo)return `<div style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.45rem 0.65rem;text-align:center;min-width:64px;opacity:0.3;">
               <div style="font-family:'Barlow Condensed';font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${MONTHS[i]}</div>
               <div style="font-size:0.68rem;color:var(--muted);">—</div></div>`;
-            let cobrado=0;members.forEach(m=>{cobrado+=getMesAbono(cuotas,m.id,mes);});
-            const esperado=members.length*valor;
+            let cobrado=0,activos=0;members.forEach(m=>{if(getMesEstadoMiembro(m,mes,anio)==='normal'){cobrado+=getMesAbono(cuotas,m.id,mes);activos++;}});
+            const esperado=activos*valor;
             const pct=esperado>0?Math.round(cobrado/esperado*100):0;
             const color=pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
             return `<div style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.45rem 0.65rem;text-align:center;min-width:64px;cursor:pointer;" onclick="togglePanelMesCompletoMes(${mes})">
