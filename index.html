@@ -2169,12 +2169,22 @@ function renderEgresos(){
   const cfg=getCuotaCfg();
   const anio=cfg.anio||new Date().getFullYear();
   const valor=parseFloat(cfg.valor)||0;
-  const cuotas=getCuotaState(chapter,anio);
   const mesActual=new Date().getMonth()+1;
-  const mesesTranscurridos=anio<new Date().getFullYear()?12:mesActual;
+  // Sumar cobrado de TODOS los años disponibles en state.cuotas
   let totalCobrado=0;
+  const currentYear=new Date().getFullYear();
   getMembers().forEach(m=>{
-    for(let i=1;i<=mesesTranscurridos;i++) totalCobrado+=getMesAbono(cuotas,m.id,i);
+    // Recorrer todos los años cargados en state para este chapter
+    Object.keys(state.cuotas).forEach(key=>{
+      if(!key.startsWith(chapter+'_')) return;
+      const keyAnio=parseInt(key.split('_').pop());
+      if(isNaN(keyAnio)) return;
+      const cuotasAnio=state.cuotas[key];
+      const mesesDelAnio=keyAnio<currentYear?12:Math.min(mesActual,12);
+      for(let i=1;i<=mesesDelAnio;i++){
+        totalCobrado+=getMesAbono(cuotasAnio,m.id,i);
+      }
+    });
   });
   const balance=totalCobrado-totalEgresos;
 
@@ -2590,8 +2600,5 @@ async function descargarReporteExcel(chapter){
 
 function togglePaid(){}
 </script>
-</body>
-</html>
-
 </body>
 </html>
