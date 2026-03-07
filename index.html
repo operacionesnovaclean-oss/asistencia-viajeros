@@ -10,23 +10,23 @@
 <style>
 :root{--black:#0a0a0a;--dark:#111111;--card:#1a1a1a;--border:#2a2a2a;--red:#e63329;--red-dark:#b5271f;--gold:#c8a84b;--blue:#1a6fc4;--yellow:#f0c030;--text:#f0ece4;--muted:#888;--success:#2ecc71;--warning:#f39c12;--danger:#e74c3c;}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
+body{background:var(--black);color:var(--text);font-family:Barlow,sans-serif;min-height:100vh;overflow-x:hidden;}
 #loginScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;position:relative;background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(230,51,41,0.18) 0%,transparent 70%),var(--black);}
 #loginScreen::before{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.02) 39px,rgba(255,255,255,0.02) 40px);}
 .login-logo-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem;position:relative;z-index:1;}
 .login-logo-img{width:130px;height:130px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(230,51,41,0.4));margin-bottom:0.8rem;}
-.login-club-name{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,7vw,3.2rem);letter-spacing:5px;line-height:1;text-align:center;color:var(--text);}
+.login-club-name{font-family:Bebas Neue,sans-serif;font-size:clamp(1.8rem,7vw,3.2rem);letter-spacing:5px;line-height:1;text-align:center;color:var(--text);}
 .login-club-name span{color:var(--text);}
-.login-subtitle{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;letter-spacing:6px;text-transform:uppercase;color:var(--gold);margin-top:0.3rem;text-align:center;}
+.login-subtitle{font-family:Barlow Condensed,sans-serif;font-size:0.78rem;letter-spacing:6px;text-transform:uppercase;color:var(--gold);margin-top:0.3rem;text-align:center;}
 .tricolor{height:3px;background:linear-gradient(90deg,var(--yellow) 33%,var(--blue) 33%,var(--blue) 66%,var(--red) 66%);}
 .login-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;width:100%;max-width:420px;position:relative;z-index:1;box-shadow:0 40px 80px rgba(0,0,0,0.6);margin-top:1.5rem;}
-.login-card h2{font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:0.8rem;}
+.login-card h2{font-family:Barlow Condensed,sans-serif;font-size:0.95rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:0.8rem;}
 .form-group{margin-bottom:1.1rem;}
 .form-group label{display:block;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;}
-.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.95rem;padding:0.7rem 1rem;outline:none;transition:border-color 0.2s;}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Barlow,sans-serif;font-size:0.95rem;padding:0.7rem 1rem;outline:none;transition:border-color 0.2s;}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--red);}
 .form-group select option{background:var(--dark);}
-.btn{display:inline-flex;align-items:center;gap:0.5rem;background:var(--red);color:#fff;border:none;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:0.75rem 1.6rem;cursor:pointer;transition:background 0.2s,transform 0.1s;}
+.btn{display:inline-flex;align-items:center;gap:0.5rem;background:var(--red);color:#fff;border:none;border-radius:3px;font-family:Barlow Condensed,sans-serif;font-size:0.95rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:0.75rem 1.6rem;cursor:pointer;transition:background 0.2s,transform 0.1s;}
 .btn:hover{background:var(--red-dark);}.btn:active{transform:scale(0.98);}
 .btn-full{width:100%;justify-content:center;}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);}
@@ -40,39 +40,39 @@ body{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;m
 .topbar-brand{display:flex;align-items:center;gap:0.75rem;}
 .topbar-logo{width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(230,51,41,0.5));}
 .topbar-name{display:flex;flex-direction:column;line-height:1;}
-.topbar-name-main{font-family:'Bebas Neue',sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(--text);}
+.topbar-name-main{font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(--text);}
 .topbar-name-main span{color:var(--text);}
-.topbar-name-sub{font-family:'Barlow Condensed',sans-serif;font-size:0.58rem;letter-spacing:4px;text-transform:uppercase;color:var(--gold);}
+.topbar-name-sub{font-family:Barlow Condensed,sans-serif;font-size:0.58rem;letter-spacing:4px;text-transform:uppercase;color:var(--gold);}
 .topbar-right{display:flex;align-items:center;gap:0.7rem;}
 .sync-indicator{display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:var(--muted);}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background 0.3s;}
 .sync-dot.online{background:var(--success);box-shadow:0 0 6px var(--success);}
 .sync-dot.syncing{background:var(--warning);animation:pulse 0.8s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
-.chapter-badge{background:var(--red);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:0.28rem 0.65rem;border-radius:2px;}
+.chapter-badge{background:var(--red);color:#fff;font-family:Barlow Condensed,sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:0.28rem 0.65rem;border-radius:2px;}
 .chapter-badge.master{background:var(--gold);color:var(--black);}
 .role-badge{font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
-.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;border-radius:3px;padding:0.35rem 0.75rem;font-family:'Barlow',sans-serif;font-size:0.78rem;transition:all 0.2s;}
+.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;border-radius:3px;padding:0.35rem 0.75rem;font-family:Barlow,sans-serif;font-size:0.78rem;transition:all 0.2s;}
 .logout-btn:hover{border-color:var(--red);color:var(--red);}
 .nav-tabs{background:var(--dark);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 1rem;gap:0.2rem;}
 .nav-tabs::-webkit-scrollbar{display:none;}
-.nav-tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:0.9rem 1.1rem;cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+.nav-tab{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);font-family:Barlow Condensed,sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:0.9rem 1.1rem;cursor:pointer;white-space:nowrap;transition:all 0.2s;}
 .nav-tab:hover{color:var(--text);}.nav-tab.active{color:var(--red);border-bottom-color:var(--red);}
 .main{padding:1.5rem;max-width:1200px;margin:0 auto;}
 .section{display:none;}.section.active{display:block;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem;}
-.card-title{font-family:'Barlow Condensed',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;}
+.card-title{font-family:Barlow Condensed,sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1.1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.9rem;margin-bottom:1.5rem;}
 .stat-card{background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:1rem;text-align:center;}
-.stat-num{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;line-height:1;color:var(--red);margin-bottom:0.2rem;}
+.stat-num{font-family:Bebas Neue,sans-serif;font-size:2.2rem;line-height:1;color:var(--red);margin-bottom:0.2rem;}
 .stat-num.gold{color:var(--gold);}
 .stat-label{font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:0.88rem;}
-th{background:var(--dark);font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0.75rem 0.9rem;text-align:left;border-bottom:1px solid var(--border);}
+th{background:var(--dark);font-family:Barlow Condensed,sans-serif;font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0.75rem 0.9rem;text-align:left;border-bottom:1px solid var(--border);}
 td{padding:0.85rem 0.9rem;border-bottom:1px solid var(--border);vertical-align:middle;}
 tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.02);}
-.badge{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0.22rem 0.55rem;border-radius:2px;}
+.badge{display:inline-block;font-family:Barlow Condensed,sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:0.22rem 0.55rem;border-radius:2px;}
 .badge-green{background:rgba(46,204,113,0.15);color:var(--success);border:1px solid rgba(46,204,113,0.3);}
 .badge-red{background:rgba(231,76,60,0.15);color:var(--danger);border:1px solid rgba(231,76,60,0.3);}
 .badge-gold{background:rgba(200,168,75,0.15);color:var(--gold);border:1px solid rgba(200,168,75,0.3);}
@@ -85,17 +85,17 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
 .att-name{font-weight:500;flex:1;min-width:140px;}
 .att-rank{font-size:0.78rem;color:var(--muted);}
 .att-controls{display:flex;gap:0.45rem;align-items:center;flex-wrap:wrap;}
-.att-btn{background:var(--dark);border:1px solid var(--border);color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.73rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:0.38rem 0.75rem;border-radius:2px;cursor:pointer;transition:all 0.2s;}
+.att-btn{background:var(--dark);border:1px solid var(--border);color:var(--muted);font-family:Barlow Condensed,sans-serif;font-size:0.73rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:0.38rem 0.75rem;border-radius:2px;cursor:pointer;transition:all 0.2s;}
 .att-btn.present{background:rgba(46,204,113,0.15);border-color:var(--success);color:var(--success);}
 .att-btn.absent{background:rgba(231,76,60,0.15);border-color:var(--danger);color:var(--danger);}
 .att-btn.excused{background:rgba(200,168,75,0.15);border-color:var(--gold);color:var(--gold);}
 .chapter-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.1rem;margin-top:1rem;}
 .chapter-card{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
 .chapter-card-header{background:var(--dark);padding:0.9rem 1.1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
-.chapter-card-name{font-family:'Bebas Neue',sans-serif;font-size:1.25rem;letter-spacing:2px;}
+.chapter-card-name{font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:2px;}
 .chapter-card-body{padding:0.9rem 1.1rem;}
 .chapter-mini-stats{display:flex;gap:1rem;margin-bottom:0.7rem;flex-wrap:wrap;}
-.cms{text-align:center;}.cms-num{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;line-height:1;color:var(--red);}
+.cms{text-align:center;}.cms-num{font-family:Bebas Neue,sans-serif;font-size:1.7rem;line-height:1;color:var(--red);}
 .cms-label{font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
 .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:0.7rem;}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--gold));border-radius:2px;transition:width 0.5s;}
@@ -108,7 +108,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
 .modal-overlay.active{display:flex;}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:4px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
 .modal-header{padding:1.1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
+.modal-title{font-family:Barlow Condensed,sans-serif;font-size:0.95rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;}
 .modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;padding:0.2rem;}
 .modal-close:hover{color:var(--red);}
 .modal-body{padding:1.4rem;}
@@ -123,7 +123,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
 .pay-toggle input:checked+.pay-toggle-track{background:rgba(46,204,113,0.3);}
 .pay-toggle input:checked+.pay-toggle-track::after{transform:translateX(15px);background:var(--success);}
 .search-bar{display:flex;gap:0.75rem;margin-bottom:1.1rem;flex-wrap:wrap;}
-.search-bar input{flex:1;min-width:190px;background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.88rem;padding:0.58rem 0.9rem;outline:none;}
+.search-bar input{flex:1;min-width:190px;background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Barlow,sans-serif;font-size:0.88rem;padding:0.58rem 0.9rem;outline:none;}
 .search-bar input:focus{border-color:var(--red);}
 @media(max-width:600px){.main{padding:1rem;}.topbar{padding:0 1rem;}.topbar-name-main{font-size:1rem;}.form-row{grid-template-columns:1fr;}}
 </style>
@@ -133,7 +133,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
 <!-- LOADING -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
-  <div style="font-family:'Barlow Condensed';letter-spacing:3px;font-size:0.85rem;text-transform:uppercase;color:var(--muted);" id="loadingMsg">Conectando...</div>
+  <div style="font-family:Barlow Condensed;letter-spacing:3px;font-size:0.85rem;text-transform:uppercase;color:var(--muted);" id="loadingMsg">Conectando...</div>
 </div>
 
 <!-- LOGIN -->
@@ -186,7 +186,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
   <div class="login-card" id="panelCrearClave" style="display:none;">
     <div style="text-align:center;margin-bottom:1.2rem;">
       <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔐</div>
-      <h2 style="font-family:'Bebas Neue';font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">CREAR CONTRASEÑA</h2>
+      <h2 style="font-family:Bebas Neue;font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">CREAR CONTRASEÑA</h2>
       <p style="font-size:0.78rem;color:var(--muted);margin-top:0.4rem;">Primera vez en el sistema. Crea una contraseña segura para tu capítulo.</p>
     </div>
     <div id="crearClaveAlert"></div>
@@ -206,7 +206,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
   <div class="login-card" id="panelCambiarClave" style="display:none;">
     <div style="text-align:center;margin-bottom:1.2rem;">
       <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔒</div>
-      <h2 style="font-family:'Bebas Neue';font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">CAMBIAR CONTRASEÑA</h2>
+      <h2 style="font-family:Bebas Neue;font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">CAMBIAR CONTRASEÑA</h2>
       <p style="font-size:0.78rem;color:var(--muted);margin-top:0.4rem;">Selecciona tu capítulo e ingresa tu contraseña actual y la nueva.</p>
     </div>
     <div id="cambiarClaveAlert"></div>
@@ -243,7 +243,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
   <div class="login-card" id="panelRecuperar" style="display:none;">
     <div style="text-align:center;margin-bottom:1.2rem;">
       <div style="font-size:2.5rem;margin-bottom:0.5rem;">🆘</div>
-      <h2 style="font-family:'Bebas Neue';font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">RECUPERAR ACCESO</h2>
+      <h2 style="font-family:Bebas Neue;font-size:1.5rem;letter-spacing:3px;color:var(--text);border:none;padding:0;margin:0;">RECUPERAR ACCESO</h2>
       <p style="font-size:0.78rem;color:var(--muted);margin-top:0.4rem;">El Administrador Nacional te dará un código de recuperación de 6 dígitos.</p>
     </div>
     <div id="recuperarAlert"></div>
@@ -336,7 +336,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
     <div class="modal-header"><div class="modal-title" id="modalMemberTitle">Agregar Miembro</div><button class="modal-close" onclick="closeModal('modalMember')">×</button></div>
     <div class="modal-body">
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📋 Datos Personales</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📋 Datos Personales</div>
       <div class="form-row">
         <div class="form-group"><label>Nombre completo</label><input type="text" id="mName" placeholder="Nombre y apellido"></div>
         <div class="form-group"><label>Apodo / Nick</label><input type="text" id="mNick" placeholder="Nombre en el club"></div>
@@ -346,7 +346,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <div class="form-group"><label>Cédula / ID</label><input type="text" id="mCedula" placeholder="Número de cédula"></div>
       </div>
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Cargo y Clasificación</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Cargo y Clasificación</div>
       <div class="form-row">
         <div class="form-group"><label>Cargo Directivo</label>
           <select id="mCargo">
@@ -381,7 +381,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         </div>
       </div>
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📅 Inicio de Cuotas</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📅 Inicio de Cuotas</div>
       <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.8rem;">Mes y año en que pasó a <strong style="color:var(--text);">Prospecto</strong> (o categoría que paga cuotas). Los meses anteriores como Simpatizante no generan deuda.</div>
       <div class="form-row">
         <div class="form-group"><label>Mes inicio de cuotas</label>
@@ -398,7 +398,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         </div>
       </div>
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">⏸️ Licencia</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">⏸️ Licencia</div>
       <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.8rem;">Durante la licencia los meses no generan deuda. Puede abarcar varios años.</div>
       <div class="form-row">
         <div class="form-group"><label>Mes inicio licencia</label>
@@ -429,13 +429,13 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         </div>
       </div>
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Moto</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Moto</div>
       <div class="form-row">
         <div class="form-group"><label>Marca / Modelo</label><input type="text" id="mBike" placeholder="Ej. Harley-Davidson Sportster 1200"></div>
         <div class="form-group"><label>Placa</label><input type="text" id="mPlaca" placeholder="Ej. ABC-1234"></div>
       </div>
 
-      <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🆘 Contacto de Emergencia</div>
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🆘 Contacto de Emergencia</div>
       <div class="form-row">
         <div class="form-group"><label>Nombre del contacto</label><input type="text" id="mEmergNombre" placeholder="Nombre completo"></div>
         <div class="form-group"><label>Parentesco</label>
@@ -488,6 +488,22 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <button class="btn" onclick="saveEvent()">Guardar</button>
         <button class="btn btn-outline" onclick="closeModal('modalEvent')">Cancelar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL CONSOLIDADO MEMBER -->
+<div class="modal-overlay" id="modalConsolidado">
+  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title" id="consolidadoTitle">Consolidado de Deuda</div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button class="btn btn-sm btn-outline" onclick="imprimirConsolidado()" title="Imprimir / PDF">🖨️ PDF</button>
+        <button class="modal-close" onclick="closeModal('modalConsolidado')">×</button>
+      </div>
+    </div>
+    <div class="modal-body" id="consolidadoBody" style="padding:1.2rem;">
     </div>
   </div>
 </div>
@@ -739,7 +755,7 @@ function showAlert(elId,msg,type){
 function showToast(msg,type='success'){
   const t=document.createElement('div');
   const bg=type==='success'?'var(--success)':'var(--danger)';
-  t.style.cssText=`position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:${bg};color:#000;padding:0.7rem 1.5rem;border-radius:3px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;letter-spacing:1px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);`;
+  t.style.cssText=`position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:${bg};color:#000;padding:0.7rem 1.5rem;border-radius:3px;font-family:Barlow Condensed,sans-serif;font-size:0.9rem;letter-spacing:1px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);`;
   t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);
 }
 
@@ -892,7 +908,7 @@ function renderDashboard(){
   const {chapter,role}=currentUser;
   const container=document.getElementById('dashContent');
   if(chapter==='MASTER'){
-    let html=`<div style="margin-bottom:1.5rem;font-family:'Bebas Neue';font-size:2rem;letter-spacing:3px;">Vista Nacional</div>
+    let html=`<div style="margin-bottom:1.5rem;font-family:Bebas Neue;font-size:2rem;letter-spacing:3px;">Vista Nacional</div>
     <div class="alert alert-blue" style="margin-bottom:1rem;">🔥 Datos en tiempo real — Firebase · ${new Date().toLocaleDateString('es-EC')}</div>
     <div class="chapter-cards">`;
     Object.entries(CHAPTERS).forEach(([id,name])=>{
@@ -925,8 +941,8 @@ function renderDashboard(){
       <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.2rem;flex-wrap:wrap;position:relative;z-index:1;">
         <img src="${document.getElementById('logoImg').src}" style="width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 0 20px rgba(230,51,41,0.5));">
         <div>
-          <div style="font-family:'Bebas Neue';font-size:clamp(1.4rem,5vw,2.5rem);letter-spacing:4px;line-height:1;">VIAJEROS RACING ECUADOR</div>
-          <div style="font-family:'Bebas Neue';font-size:clamp(1rem,4vw,1.8rem);letter-spacing:3px;color:var(--red);">${CHAPTERS[chapter]}</div>
+          <div style="font-family:Bebas Neue;font-size:clamp(1.4rem,5vw,2.5rem);letter-spacing:4px;line-height:1;">VIAJEROS RACING ECUADOR</div>
+          <div style="font-family:Bebas Neue;font-size:clamp(1rem,4vw,1.8rem);letter-spacing:3px;color:var(--red);">${CHAPTERS[chapter]}</div>
           <div style="font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;">${{secretary:'Secretario',president:'Presidente'}[role]} · Datos en tiempo real 🔥</div>
         </div>
         <div class="badge badge-blue" style="margin-left:auto;align-self:flex-start;">Firebase</div>
@@ -934,7 +950,7 @@ function renderDashboard(){
 
       <!-- Logos de apoyo -->
       <div style="border-top:1px solid var(--border);padding-top:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;position:relative;z-index:1;">
-        <div style="font-family:'Barlow Condensed';font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--border);">Con el apoyo de:</div>
+        <div style="font-family:Barlow Condensed;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--border);">Con el apoyo de:</div>
         <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
           <img src="${LOGO_FRIENDSHIP}" style="width:100px;height:100px;object-fit:contain;filter:grayscale(20%) drop-shadow(0 0 10px rgba(255,255,255,0.15));opacity:0.85;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">
           <div style="width:1px;height:70px;background:var(--border);"></div>
@@ -1251,12 +1267,200 @@ async function saveAttendance(eventId){
 // ── CUOTAS ──
 function getMesAbono(cuotas,memberId,mes){
   const v=(cuotas[memberId]||{})[mes];
-  if(v==='CONDONADO') return 'CONDONADO';
+  if(v==='CONDONADO') return 0;
   return parseFloat(v)||0;
 }
 function esMesCondonado(cuotas,memberId,mes){
   return (cuotas[memberId]||{})[mes]==='CONDONADO';
 }
+
+// ── CONSOLIDADO DE DEUDA POR MEMBER ──
+async function abrirConsolidadoMember(memberId){
+  const {chapter} = currentUser;
+  const member = getMembers().find(m=>m.id===memberId);
+  if(!member) return;
+
+  document.getElementById('consolidadoTitle').textContent = member.name + (member.nick ? ' "'+member.nick+'"' : '');
+  document.getElementById('consolidadoBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);">Cargando historial...</div>';
+  openModal('modalConsolidado');
+
+  // Load all available years from state + current year
+  const currentYear = new Date().getFullYear();
+  const yearsToCheck = [];
+  for(let y = currentYear; y >= currentYear - 4; y--) yearsToCheck.push(y);
+
+  // Load cuotas for all years
+  const yearData = {};
+  for(const y of yearsToCheck){
+    const key = chapter+'_'+y;
+    if(!state.cuotas[key]){
+      try{
+        const doc = await window.fbGet('chapters/'+chapter+'/config/cuotas_'+y);
+        state.cuotas[key] = doc || {};
+      }catch(e){ state.cuotas[key] = {}; }
+    }
+    yearData[y] = state.cuotas[key];
+  }
+
+  // Get cuota config (may vary by year - use current for all for now)
+  const cfg = getCuotaCfg(chapter);
+  const valorCuota = parseFloat(cfg.valor)||0;
+  const mesActual = new Date().getMonth()+1;
+
+  let grandTotalCobrado = 0;
+  let grandTotalAdeudado = 0;
+  let grandTotalCondonado = 0;
+  let yearsHTML = '';
+
+  for(const y of yearsToCheck){
+    const cuotasAnio = yearData[y];
+    const mesesTranscurridos = y < currentYear ? 12 : mesActual;
+    const esMemberActivo = !member.cuotasAnio || member.cuotasAnio <= y;
+    if(!esMemberActivo && y < (member.cuotasAnio||currentYear)) continue;
+
+    let totalPagAnio = 0, totalAdAnio = 0, totalCondAnio = 0;
+    let hasData = false;
+    let mesesHTML = '';
+
+    for(let mes=1; mes<=12; mes++){
+      const esFuturo = y===currentYear && mes>mesActual;
+      const estadoM = getMesEstadoMiembro(member, mes, y);
+      const ab = getMesAbono(cuotasAnio, memberId, mes);
+      const esCondonado = esMesCondonado(cuotasAnio, memberId, mes);
+      const abNum = parseFloat(ab)||0;
+      const esMesOblig = estadoM==='normal' && !esCondonado && !esFuturo;
+
+      let estado, color, bg, simbolo;
+      if(esFuturo){
+        estado='Futuro'; color='var(--border)'; bg='transparent'; simbolo='—';
+      } else if(estadoM==='simpatizante'){
+        estado='Simpatizante'; color='#555'; bg='#1a1a1a'; simbolo='S';
+      } else if(estadoM==='licencia'){
+        estado='Licencia'; color='var(--blue)'; bg='rgba(26,111,196,0.1)'; simbolo='L';
+        hasData=true;
+      } else if(estadoM==='condonado_grupal' || esCondonado){
+        estado='Condonado'; color='var(--gold)'; bg='rgba(200,168,75,0.1)'; simbolo='C';
+        totalCondAnio+=valorCuota; hasData=true;
+      } else if(abNum>=valorCuota&&valorCuota>0){
+        estado='Pagado'; color='var(--success)'; bg='rgba(46,204,113,0.08)'; simbolo='✓';
+        totalPagAnio+=abNum; hasData=true;
+      } else if(abNum>0){
+        estado='Parcial'; color='var(--warning)'; bg='rgba(243,156,18,0.08)'; simbolo='~';
+        totalPagAnio+=abNum; totalAdAnio+=valorCuota-abNum; hasData=true;
+      } else if(esMesOblig){
+        estado='Pendiente'; color='var(--danger)'; bg='rgba(231,76,60,0.08)'; simbolo='✗';
+        totalAdAnio+=valorCuota; hasData=true;
+      } else {
+        estado='—'; color='var(--border)'; bg='transparent'; simbolo='—';
+      }
+
+      mesesHTML += '<td style="text-align:center;padding:0.3rem 0.15rem;">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:'+bg+';border:1.5px solid '+color+';display:flex;align-items:center;justify-content:center;margin:auto;" title="'+MONTHS_FULL[mes-1]+': '+estado+(abNum>0?' ($'+abNum.toFixed(2)+')':'')+'">'
+        +'<span style="font-size:0.65rem;color:'+color+';font-weight:700;">'+simbolo+'</span>'
+        +'</div>'
+        +(abNum>0&&abNum<valorCuota?'<div style="font-size:0.55rem;color:var(--warning);text-align:center;">$'+abNum.toFixed(0)+'</div>':'')
+        +'</td>';
+    }
+
+    if(!hasData && y < currentYear) continue; // skip years with no activity
+    grandTotalCobrado += totalPagAnio;
+    grandTotalAdeudado += totalAdAnio;
+    grandTotalCondonado += totalCondAnio;
+
+    const estadoAnio = totalAdAnio===0&&totalPagAnio>0?'Al día':totalAdAnio>0&&totalPagAnio>0?'Parcial':totalAdAnio>0?'Pendiente':'—';
+    const colorEstado = totalAdAnio===0&&totalPagAnio>0?'var(--success)':totalAdAnio>0?'var(--danger)':'var(--muted)';
+
+    yearsHTML += '<div style="margin-bottom:1.2rem;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">'
+      +'<div style="font-family:Bebas Neue;font-size:1.2rem;letter-spacing:2px;">'+y+'</div>'
+      +'<div style="display:flex;gap:1rem;font-size:0.78rem;">'
+      +'<span style="color:var(--success);">Cobrado: <strong>$'+totalPagAnio.toFixed(2)+'</strong></span>'
+      +(totalCondAnio>0?'<span style="color:var(--gold);">Condonado: <strong>$'+totalCondAnio.toFixed(2)+'</strong></span>':'')
+      +'<span style="color:'+colorEstado+';">Adeuda: <strong>$'+totalAdAnio.toFixed(2)+'</strong></span>'
+      +'</div>'
+      +'</div>'
+      +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
+      +'<thead><tr>'
+      +['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'].map(m=>'<th style="text-align:center;font-size:0.6rem;color:var(--muted);padding:0.2rem;font-weight:600;letter-spacing:1px;">'+m+'</th>').join('')
+      +'</tr></thead>'
+      +'<tbody><tr>'+mesesHTML+'</tr></tbody>'
+      +'</table></div>'
+      +'</div>';
+  }
+
+  const estadoGeneral = grandTotalAdeudado===0?'AL DÍA':'TIENE DEUDA';
+  const colorGeneral = grandTotalAdeudado===0?'var(--success)':'var(--danger)';
+
+  const html = '<div id="consolidadoPrintArea">'
+    // Header
+    +'<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:2px solid var(--border);">'
+    +'<div style="flex:1;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.6rem;letter-spacing:3px;">'+member.name+'</div>'
+    +(member.nick?'<div style="font-size:0.78rem;color:var(--muted);">"'+member.nick+'"</div>':'')
+    +'<div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">'+( member.rank||'')+(member.cargo?' · '+member.cargo:'')+'</div>'
+    +'</div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.1rem;letter-spacing:2px;color:'+colorGeneral+';">'+estadoGeneral+'</div>'
+    +'<div style="font-size:0.68rem;color:var(--muted);">Cuota mensual: <strong style="color:var(--gold);">$'+valorCuota.toFixed(2)+'</strong></div>'
+    +'</div>'
+    +'</div>'
+    // Summary stats
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.8rem;margin-bottom:1.5rem;">'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.6rem;color:var(--success);">$'+grandTotalCobrado.toFixed(2)+'</div>'
+    +'<div style="font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Total Cobrado</div>'
+    +'</div>'
+    +(grandTotalCondonado>0?'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.6rem;color:var(--gold);">$'+grandTotalCondonado.toFixed(2)+'</div>'
+    +'<div style="font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Condonado</div>'
+    +'</div>':'')
+    +'<div style="background:var(--dark);border:1px solid '+(grandTotalAdeudado>0?'rgba(231,76,60,0.4)':'var(--border)')+';border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.6rem;color:'+(grandTotalAdeudado>0?'var(--danger)':'var(--muted)')+';">$'+grandTotalAdeudado.toFixed(2)+'</div>'
+    +'<div style="font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Total Adeudado</div>'
+    +'</div>'
+    +'</div>'
+    // Year by year detail
+    + yearsHTML
+    // Legend
+    +'<div style="display:flex;flex-wrap:wrap;gap:0.8rem;padding-top:0.8rem;border-top:1px solid var(--border);margin-top:0.5rem;">'
+    +[['var(--success)','✓','Pagado'],['var(--warning)','~','Parcial'],['var(--danger)','✗','Pendiente'],['var(--gold)','C','Condonado'],['var(--blue)','L','Licencia'],['#555','S','Simpatizante']]
+      .map(([c,s,l])=>'<div style="display:flex;align-items:center;gap:0.35rem;font-size:0.68rem;color:var(--muted);"><div style="width:16px;height:16px;border-radius:50%;border:1.5px solid '+c+';display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:'+c+';font-weight:700;">'+s+'</div>'+l+'</div>')
+      .join('')
+    +'</div>'
+    +'</div>';
+
+  document.getElementById('consolidadoBody').innerHTML = html;
+}
+
+function imprimirConsolidado(){
+  const area = document.getElementById('consolidadoPrintArea');
+  if(!area) return;
+  const member = document.getElementById('consolidadoTitle').textContent;
+  const win = window.open('','_blank','width=800,height=600');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Consolidado - ${member}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{background:#fff;color:#111;font-family:Barlow,sans-serif;padding:2rem;font-size:12px;}
+      table{width:100%;border-collapse:collapse;}
+      th,td{padding:0.3rem;}
+      @media print{body{padding:1rem;}}
+    </style>
+    </head><body>
+    <div style="text-align:center;margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:2px solid #333;">
+      <div style="font-family:Bebas Neue;font-size:1.4rem;letter-spacing:4px;">VIAJEROS RACING ECUADOR</div>
+      <div style="font-size:0.7rem;letter-spacing:3px;text-transform:uppercase;color:#888;">Consolidado de Cuotas</div>
+    </div>
+    ${area.innerHTML}
+    <div style="margin-top:1.5rem;padding-top:0.8rem;border-top:1px solid #ccc;font-size:0.65rem;color:#888;text-align:center;">
+      Generado el ${new Date().toLocaleDateString('es-EC',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+    </div>
+    </body></html>`);
+  win.document.close();
+  setTimeout(()=>{win.print();},800);
+}
+
 async function condonarAbono(){
   const {memberId,mes,chapter,anio}=_abonoCtx;
   const key=`${chapter}_${anio}`;
@@ -1305,7 +1509,7 @@ async function condonarMesATodos(mes){
     const estadoM=getMesEstadoMiembro(m,mes,anio);
     if(estadoM!=='normal')return; // skip simpatizante/licencia
     const ab=getMesAbono(state.cuotas[key],m.id,mes);
-    if(ab==='CONDONADO'||parseFloat(ab)>=parseFloat(cfg.valor))return; // already paid/condonado
+    if(esMesCondonado(state.cuotas[key],m.id,mes)||parseFloat(ab)>=parseFloat(cfg.valor))return; // already paid/condonado
     if(!state.cuotas[key][m.id])state.cuotas[key][m.id]={};
     state.cuotas[key][m.id][mes]='CONDONADO';
   });
@@ -1385,7 +1589,7 @@ function renderCuotas(){
           <div><button class="btn btn-sm btn-gold" onclick="saveCuotaConfig()" style="margin-top:1.5rem;">Guardar</button></div>
         </div>
         <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
-          <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">🤝 Meses Condonados (aplica a todos)</div>
+          <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">🤝 Meses Condonados (aplica a todos)</div>
           <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.8rem;">Los meses marcados no generan deuda para ningún miembro. La condonación individual se hace desde la celda de cada member.</div>
           <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.8rem;">
             ${MONTHS_FULL.map((mn,i)=>{
@@ -1404,9 +1608,9 @@ function renderCuotas(){
         </div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:2rem;align-items:center;">
-        <div><div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Año</div><div style="font-family:'Bebas Neue';font-size:1.8rem;letter-spacing:2px;">${anio}</div></div>
-        <div><div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Cuota mensual</div><div style="font-family:'Bebas Neue';font-size:1.8rem;color:var(--gold);">$${valor.toFixed(2)}</div></div>
-        <div><div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Miembros</div><div style="font-family:'Bebas Neue';font-size:1.8rem;">${members.length}</div></div>
+        <div><div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Año</div><div style="font-family:Bebas Neue;font-size:1.8rem;letter-spacing:2px;">${anio}</div></div>
+        <div><div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Cuota mensual</div><div style="font-family:Bebas Neue;font-size:1.8rem;color:var(--gold);">$${valor.toFixed(2)}</div></div>
+        <div><div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Miembros</div><div style="font-family:Bebas Neue;font-size:1.8rem;">${members.length}</div></div>
       </div>
     </div>
     <div class="stats-grid" style="margin-bottom:1.5rem;">
@@ -1424,11 +1628,11 @@ function renderCuotas(){
         </div>
       </div>
       <div id="panelMesCompleto" style="display:none;background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:1rem;margin-bottom:1rem;">
-        <div style="font-family:'Barlow Condensed';font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;">Pago completo para todos los miembros</div>
+        <div style="font-family:Barlow Condensed;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;">Pago completo para todos los miembros</div>
         <div style="display:flex;gap:0.8rem;align-items:flex-end;flex-wrap:wrap;">
           <div class="form-group" style="margin:0;">
             <label>Mes</label>
-            <select id="selMesCompleto" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.8rem;border-radius:3px;font-family:'Barlow',sans-serif;">
+            <select id="selMesCompleto" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.8rem;border-radius:3px;font-family:Barlow,sans-serif;">
               ${MONTHS_FULL.map((m,i)=>`<option value="${i+1}" ${i+1===mesActual?'selected':''}>${m}</option>`).join('')}
             </select>
           </div>
@@ -1452,8 +1656,8 @@ function renderCuotas(){
             const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
             const estadoM=getMesEstadoMiembro(m,mes,anio);
             const esExento=estadoM!=='normal';
-            const esCondonado=ab==='CONDONADO';
-            const abNum=esCondonado?0:parseFloat(ab)||0;
+            const esCondonado=esMesCondonado(cuotas,m.id,mes);
+            const abNum=parseFloat(ab)||0;
             const pagado=!esCondonado&&abNum>=valor&&valor>0;const parcial=!esCondonado&&abNum>0&&abNum<valor;
             if(!esFuturo&&!esExento&&!esCondonado) totalPag+=abNum;
             let bc,bt,bb,bg;
@@ -1497,7 +1701,12 @@ function renderCuotas(){
           const totalAd=Math.max(0,mesesObligatorios*valor-totalPag);
           const alDia=totalAd===0&&mesesObligatorios>0;
           return `<tr>
-            <td><div style="font-weight:500;font-size:0.85rem;">${m.name}</div>${m.nick?`<div style="font-size:0.68rem;color:var(--muted);">"${m.nick}"</div>`:''}</td>
+            <td>
+              <div style="font-weight:500;font-size:0.85rem;cursor:pointer;color:var(--text);text-decoration:underline;text-decoration-color:var(--border);"
+                   onclick="abrirConsolidadoMember('${m.id}')"
+                   title="Ver consolidado de deuda">${m.name}</div>
+              ${m.nick?`<div style="font-size:0.68rem;color:var(--muted);">"${m.nick}"</div>`:''}
+            </td>
             ${cells}
             <td style="text-align:center;font-weight:700;color:var(--success);font-size:0.88rem;">$${totalPag.toFixed(2)}</td>
             <td style="text-align:center;font-weight:700;color:${totalAd>0?'var(--danger)':'var(--muted)'};font-size:0.88rem;">$${totalAd.toFixed(2)}</td>
@@ -1514,20 +1723,20 @@ function renderCuotas(){
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--gold);background:rgba(200,168,75,0.15);display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:var(--gold);font-weight:700;">C</div>Condonado</div>
       </div>
       <div style="margin-top:1.2rem;border-top:1px solid var(--border);padding-top:1rem;">
-        <div style="font-family:'Barlow Condensed';font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;">Resumen por Mes</div>
+        <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;">Resumen por Mes</div>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
           ${MONTHS.map((_,i)=>{
             const mes=i+1;const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
             if(esFuturo)return `<div style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.45rem 0.65rem;text-align:center;min-width:64px;opacity:0.3;">
-              <div style="font-family:'Barlow Condensed';font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${MONTHS[i]}</div>
+              <div style="font-family:Barlow Condensed;font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${MONTHS[i]}</div>
               <div style="font-size:0.68rem;color:var(--muted);">—</div></div>`;
             let cobrado=0,activos=0;members.forEach(m=>{if(getMesEstadoMiembro(m,mes,anio)==='normal'&&!esMesCondonado(cuotas,m.id,mes)){const ab=getMesAbono(cuotas,m.id,mes);cobrado+=parseFloat(ab)||0;activos++;}});
             const esperado=activos*valor;
             const pct=esperado>0?Math.round(cobrado/esperado*100):0;
             const color=pct>=100?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
             return `<div style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.45rem 0.65rem;text-align:center;min-width:64px;">
-              <div style="font-family:'Barlow Condensed';font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${MONTHS[i]}</div>
-              <div style="font-family:'Bebas Neue';font-size:1.05rem;color:${color};">${pct}%</div>
+              <div style="font-family:Barlow Condensed;font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">${MONTHS[i]}</div>
+              <div style="font-family:Bebas Neue;font-size:1.05rem;color:${color};">${pct}%</div>
               <div style="font-size:0.62rem;color:var(--muted);cursor:pointer;" onclick="togglePanelMesCompletoMes(${mes})">$${cobrado.toFixed(0)}/$${esperado.toFixed(0)}</div>
             </div>`;
           }).join('')}
@@ -1651,7 +1860,7 @@ async function generarCodigoRecuperacion(chapter){
 
 function renderReportes(){
   const container=document.getElementById('reportContent');
-  let html=`<div style="margin-bottom:1.5rem;font-family:'Bebas Neue';font-size:2rem;letter-spacing:3px;">Reporte Global · Viajeros Racing Ecuador</div>
+  let html=`<div style="margin-bottom:1.5rem;font-family:Bebas Neue;font-size:2rem;letter-spacing:3px;">Reporte Global · Viajeros Racing Ecuador</div>
   <div class="alert alert-blue" style="margin-bottom:1.5rem;">🔥 Datos sincronizados desde Firebase en tiempo real</div>
 
   <!-- PANEL DE RECUPERACIÓN DE CLAVES -->
@@ -1672,7 +1881,7 @@ function renderReportes(){
     const cuotas=getCuotaState(id,anio);
     const valor=parseFloat(cfg.valor)||0;
     const mes=anio<new Date().getFullYear()?12:new Date().getMonth()+1;
-    html+=`<div class="card"><div class="card-title">${name} <span style="font-family:'Barlow';font-size:0.78rem;font-weight:400;text-transform:none;letter-spacing:0;">${members.length} miembros · ${events.length} eventos · cuota $${valor.toFixed(2)}</span></div>`;
+    html+=`<div class="card"><div class="card-title">${name} <span style="font-family:Barlow;font-size:0.78rem;font-weight:400;text-transform:none;letter-spacing:0;">${members.length} miembros · ${events.length} eventos · cuota $${valor.toFixed(2)}</span></div>`;
     if(members.length===0||events.length===0){html+=`<p style="color:var(--muted);font-size:0.85rem;">Sin datos.</p></div>`;return;}
     const lastEvents=events.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).reverse();
     html+=`<div class="table-wrap"><table><thead><tr><th>Miembro</th>`;
@@ -2072,7 +2281,7 @@ async function renderEgresosMaster(container){
   const totalGlobal=allEgresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
 
   container.innerHTML=`
-    <div style="font-family:'Bebas Neue';font-size:2rem;letter-spacing:3px;margin-bottom:1rem;">Egresos — Todos los Capítulos</div>
+    <div style="font-family:Bebas Neue;font-size:2rem;letter-spacing:3px;margin-bottom:1rem;">Egresos — Todos los Capítulos</div>
     <div class="stats-grid" style="margin-bottom:1.5rem;">
       <div class="stat-card"><div class="stat-num" style="color:var(--danger)">$${totalGlobal.toFixed(2)}</div><div class="stat-label">Total Egresos Global</div></div>
       <div class="stat-card"><div class="stat-num gold">${allEgresos.length}</div><div class="stat-label">Total Registros</div></div>
@@ -2381,5 +2590,8 @@ async function descargarReporteExcel(chapter){
 
 function togglePaid(){}
 </script>
+</body>
+</html>
+
 </body>
 </html>
