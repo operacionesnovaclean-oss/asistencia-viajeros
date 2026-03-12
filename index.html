@@ -180,6 +180,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
       <button onclick="mostrarPanel('panelRecuperar')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.78rem;text-decoration:underline;">¿Olvidaste tu clave?</button>
     </div>
     <p style="margin-top:0.8rem;font-size:0.7rem;color:var(--border);text-align:center;">Primera vez: usa <strong style="color:var(--gold)">vre2026</strong></p>
+    <p style="margin-top:0.4rem;font-size:0.65rem;color:var(--border);text-align:center;"><button onclick="localStorage.removeItem('vre_session');location.reload();" style="background:none;border:none;color:var(--border);cursor:pointer;font-size:0.65rem;text-decoration:underline;">¿Problemas para entrar? Limpiar sesión</button></p>
   </div>
 
   <!-- PANEL 2: CREAR CLAVE (primera vez) -->
@@ -429,6 +430,11 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         </div>
       </div>
 
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">📈 Historial de Categorías</div>
+      <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.8rem;">Registra las fechas de cada cambio de categoría para la hoja de vida del member.</div>
+      <div id="historialCats" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.8rem;"></div>
+      <button type="button" class="btn btn-sm btn-outline" onclick="agregarFilaHistorial()">+ Añadir entrada</button>
+
       <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Moto</div>
       <div class="form-row">
         <div class="form-group"><label>Marca / Modelo</label><input type="text" id="mBike" placeholder="Ej. Harley-Davidson Sportster 1200"></div>
@@ -500,6 +506,7 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
       <div class="modal-title" id="consolidadoTitle">Consolidado de Deuda</div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <button class="btn btn-sm btn-outline" onclick="imprimirConsolidado()" title="Imprimir / PDF">🖨️ PDF</button>
+        <button class="btn btn-sm btn-outline" onclick="imprimirHojaVida()" title="Imprimir hoja de vida" id="btnImprimirHojaVida" style="display:none;">🖨️ Hoja de Vida</button>
         <button class="modal-close" onclick="closeModal('modalConsolidado')">×</button>
       </div>
     </div>
@@ -520,6 +527,31 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <button class="btn btn-outline" onclick="closeModal('modalAbono')">Cancelar</button>
         <button class="btn btn-sm" onclick="condonarAbono()" style="background:rgba(200,168,75,0.2);border:1px solid var(--gold);color:var(--gold);">🤝 Condonar</button>
         <button class="btn btn-danger btn-sm" onclick="borrarAbono()" style="margin-left:auto;">Borrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL INGRESO COMERCIAL -->
+<div class="modal-overlay" id="modalIngreso">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><div class="modal-title">Registrar Ingreso Comercial</div><button class="modal-close" onclick="closeModal('modalIngreso')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Fecha</label><input type="date" id="ingresoFecha"></div>
+        <div class="form-group"><label>Monto (USD $)</label><input type="number" id="ingresoMonto" min="0" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Categoría</label>
+          <select id="ingresoCategoria"></select>
+        </div>
+        <div class="form-group"><label>Responsable</label><input type="text" id="ingresoResponsable" placeholder="Nombre del responsable"></div>
+      </div>
+      <div class="form-group"><label>Descripción / Observación</label><textarea id="ingresoDescripcion" rows="3" placeholder="Detalle del ingreso..."></textarea></div>
+      <div class="form-actions">
+        <button class="btn btn-gold" onclick="guardarIngreso()">Guardar</button>
+        <button class="btn btn-outline" onclick="closeModal('modalIngreso')">Cancelar</button>
       </div>
     </div>
   </div>
@@ -595,7 +627,7 @@ let editingMemberId=null;
 let _abonoCtx={};
 let _pendingLogin=null;
 
-const state={members:{},events:{},attendance:{},cuotas:{},cuotaCfg:{}};
+const state={members:{},events:{},attendance:{},cuotas:{},cuotaCfg:{},ingresos:{}};
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function showLoading(msg='Cargando...'){const o=document.getElementById('loadingOverlay');o.classList.add('active');document.getElementById('loadingMsg').textContent=msg;}
@@ -638,6 +670,7 @@ async function getRecoveryCode(chapter){
 
 // ── LOGIN ──
 async function doLogin(){
+  try{
   const chapter=document.getElementById('loginChapter').value;
   const role=chapter==='MASTER'?'master':document.getElementById('loginRole').value;
   const pwd=document.getElementById('loginPwd').value.trim();
@@ -670,6 +703,11 @@ async function doLogin(){
     return await showApp();
   }
   showAlert('loginAlert','Contraseña incorrecta. Si la olvidaste, usa "¿Olvidaste tu clave?"','error');
+  }catch(err){
+    hideLoading();
+    console.error('doLogin error:',err);
+    showAlert('loginAlert','Error al iniciar sesión: '+err.message,'error');
+  }
 }
 
 // ── CREAR CONTRASEÑA (primera vez) ──
@@ -769,16 +807,30 @@ function doLogout(){
 
 async function waitForFb(){
   if(typeof window.fbGet!=='undefined') return;
-  await new Promise(r=>window.addEventListener('fbReady',r,{once:true}));
+  await new Promise((resolve,reject)=>{
+    const timeout=setTimeout(()=>reject(new Error('Firebase no cargó. Verifica tu conexión a internet.')),10000);
+    window.addEventListener('fbReady',()=>{clearTimeout(timeout);resolve();},{once:true});
+  });
 }
 
 window.addEventListener('load',async()=>{
   const sess=localStorage.getItem('vre_session');
-  if(sess){try{currentUser=JSON.parse(sess);await showApp();}catch{}}
+  if(sess){
+    try{
+      currentUser=JSON.parse(sess);
+      if(!currentUser||!currentUser.chapter) throw new Error('invalid');
+      await showApp();
+    }catch(e){
+      console.error('Session error, clearing:',e);
+      localStorage.removeItem('vre_session');
+      currentUser=null;
+    }
+  }
 });
 
 // ── APP INIT ──
 async function showApp(){
+  try{
   document.getElementById('loginScreen').style.display='none';
   const app=document.getElementById('app');
   app.style.display='flex';app.style.flexDirection='column';
@@ -798,10 +850,20 @@ async function showApp(){
     } else {
       await loadChapterData(chapter);
     }
-  } catch(e){ console.error(e); }
+  } catch(e){ console.error('Error loading data:',e); }
   hideLoading();
   buildNav();
   switchSection('dashboard');
+  }catch(err){
+    console.error('showApp error:',err);
+    hideLoading();
+    // Si algo falla, limpiar sesión y volver al login
+    localStorage.removeItem('vre_session');
+    currentUser=null;
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    alert('Error al cargar la aplicación. Por favor, intenta ingresar de nuevo.\n\n'+err.message);
+  }
 }
 
 async function loadChapterData(chapter){
@@ -809,17 +871,20 @@ async function loadChapterData(chapter){
     await new Promise(r=>window.addEventListener('fbReady',r,{once:true}));
   }
   window.updateSync('syncing');
-  const [members,events,cuotaCfgDoc,egresosData]=await Promise.all([
+  const [members,events,cuotaCfgDoc,egresosData,ingresosData]=await Promise.all([
     window.fbGetCol(`chapters/${chapter}/members`),
     window.fbGetCol(`chapters/${chapter}/events`),
     window.fbGet(`chapters/${chapter}/config/cuotas`),
     window.fbGetCol(`chapters/${chapter}/egresos`),
+    window.fbGetCol(`chapters/${chapter}/ingresos`),
   ]);
   state.members[chapter]=members||[];
   state.events[chapter]=events||[];
   state.cuotaCfg[chapter]=cuotaCfgDoc||{valor:10,anio:new Date().getFullYear()};
   if(!state.egresos) state.egresos={};
   state.egresos[chapter]=egresosData||[];
+  if(!state.ingresos) state.ingresos={};
+  state.ingresos[chapter]=ingresosData||[];
   // Load cuotas for current year
   const anio=state.cuotaCfg[chapter].anio||new Date().getFullYear();
   const cuotasDoc=await window.fbGet(`chapters/${chapter}/config/cuotas_${anio}`);
@@ -846,11 +911,11 @@ function buildNav(){
   if(!isMaster){
     items.push({id:'miembros',label:'Tropa'});
     items.push({id:'eventos',label:'Eventos'});
-    if(isSecretary) items.push({id:'asistencia',label:'Asistencia'});
+    items.push({id:'asistencia',label:'Asistencia'});
     items.push({id:'cuotas',label:'Cuotas'});
-    items.push({id:'egresos',label:'Egresos'});
+    items.push({id:'egresos',label:'Finanzas'});
   }
-  if(isMaster) items.push({id:'egresos',label:'Egresos'});
+  if(isMaster) items.push({id:'egresos',label:'Finanzas'});
   if(isMaster) items.push({id:'reportes',label:'Vista Global'});
   items.forEach(item=>{
     const btn=document.createElement('button');
@@ -866,6 +931,7 @@ function switchSection(id){
   if(id==='miembros')renderMembers();
   if(id==='eventos')renderEvents();
   if(id==='asistencia')renderAttendanceSection();
+  if(id==='miembros')renderMiembros();
   if(id==='cuotas')renderCuotas();
   if(id==='egresos')renderEgresos();
   if(id==='reportes')renderReportes();
@@ -993,7 +1059,7 @@ function renderMembers(){
   tbody.innerHTML=filtered.map((m,i)=>`<tr>
     <td style="color:var(--muted);font-size:0.78rem;">${i+1}</td>
     <td>
-      <div style="font-weight:600;font-size:0.9rem;">${m.name}</div>
+      <div style="font-weight:600;font-size:0.9rem;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);" onclick="abrirHojaVida('${m.id}')" title="Ver hoja de vida">${m.name}</div>
       ${m.nick?`<div style="font-size:0.72rem;color:var(--muted);">"${m.nick}"</div>`:''}
       ${m.sangre?`<div style="font-size:0.65rem;margin-top:2px;"><span style="background:rgba(231,76,60,0.2);color:var(--danger);padding:0 4px;border-radius:2px;font-weight:700;">${m.sangre}</span></div>`:''}
     </td>
@@ -1032,6 +1098,8 @@ function openAddMember(){
   document.getElementById('mLicenciaInicioAnio').value='';
   document.getElementById('mLicenciaFin').value='';
   document.getElementById('mLicenciaFinAnio').value='';
+  document.getElementById('historialCats').innerHTML='';
+  agregarFilaHistorial();
   openModal('modalMember');
 }
 function editMember(id){
@@ -1058,6 +1126,11 @@ function editMember(id){
   document.getElementById('mEmergParentesco').value=m.emergParentesco||'';
   document.getElementById('mEmergTel').value=m.emergTel||'';
   document.getElementById('mSangre').value=m.sangre||'';
+  // Load historial categorias
+  const hc=m.historialCats||[];
+  document.getElementById('historialCats').innerHTML='';
+  if(hc.length>0) hc.forEach(h=>agregarFilaHistorial(h.fecha,h.categoria,h.nota));
+  else agregarFilaHistorial();
   openModal('modalMember');
 }
 async function saveMember(){
@@ -1085,6 +1158,11 @@ async function saveMember(){
     emergParentesco:document.getElementById('mEmergParentesco').value,
     emergTel:document.getElementById('mEmergTel').value.trim(),
     sangre:document.getElementById('mSangre').value,
+    historialCats:Array.from(document.querySelectorAll('.hcat-row')).map(row=>({
+      fecha:row.querySelector('.hcat-fecha').value,
+      categoria:row.querySelector('.hcat-cat').value,
+      nota:row.querySelector('.hcat-nota').value
+    })).filter(h=>h.fecha&&h.categoria),
     paid:false
   };
   showLoading('Guardando...');window.updateSync('syncing');
@@ -1182,18 +1260,359 @@ async function openAttendance(eventId){
   switchSection('asistencia');
   loadAttendance(eventId);
 }
-function renderAttendanceSection(){
+
+
+const RANK_OPTIONS=['Simpatizante','Hangaround','Prospecto','Member Full','Member Full Color','Member Full Patch'];
+
+function agregarFilaHistorial(fecha='',categoria='',nota=''){
+  const cont=document.getElementById('historialCats');
+  if(!cont) return;
+  const div=document.createElement('div');
+  div.className='hcat-row';
+  div.style.cssText='display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;';
+  div.innerHTML='<input type="date" class="hcat-fecha" value="'+fecha+'" style="background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);padding:0.4rem 0.6rem;font-family:Barlow,sans-serif;font-size:0.82rem;">'
+    +'<select class="hcat-cat" style="background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);padding:0.4rem 0.6rem;font-family:Barlow,sans-serif;font-size:0.82rem;">'
+    +RANK_OPTIONS.map(r=>'<option'+(r===categoria?' selected':'')+'>'+r+'</option>').join('')
+    +'</select>'
+    +'<input type="text" class="hcat-nota" placeholder="Nota opcional" value="'+nota+'" style="flex:1;min-width:120px;background:var(--dark);border:1px solid var(--border);border-radius:3px;color:var(--text);padding:0.4rem 0.6rem;font-family:Barlow,sans-serif;font-size:0.82rem;">'
+    +'<button type="button" onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0.2rem;">✕</button>';
+  cont.appendChild(div);
+}
+
+function abrirHojaVida(memberId){
   const {chapter}=currentUser;
+  const member=getMembers().find(m=>m.id===memberId);
+  if(!member) return;
   const events=getEvents();
-  if(events.length===0){document.getElementById('attContent').innerHTML='<p style="color:var(--muted);">No hay eventos.</p>';return;}
-  document.getElementById('attContent').innerHTML=`
-    <div class="form-group" style="margin-bottom:1.5rem;">
-      <label>Seleccionar Evento</label>
-      <select id="attEventSel" onchange="openAttendance(this.value)">
-        <option value="">— Seleccionar —</option>
-        ${events.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(ev=>`<option value="${ev.id}">${formatDate(ev.date)} — ${ev.name}</option>`).join('')}
-      </select>
-    </div><div id="attList"></div>`;
+  const cfg=getCuotaCfg(chapter);
+  const anio=cfg.anio||new Date().getFullYear();
+  const cuotas=getCuotaState(chapter,anio);
+  const mesActual=new Date().getMonth()+1;
+  const mesesTranscurridos=anio<new Date().getFullYear()?12:mesActual;
+  const valor=parseFloat(cfg.valor)||0;
+
+  // Attendance stats
+  let present=0,absent=0,excused=0,total=0;
+  events.forEach(ev=>{
+    const att=getAttForEvent(chapter,ev.id);
+    const rec=att.find(a=>a.memberId===memberId);
+    if(rec){total++;
+      if(rec.status==='present') present++;
+      else if(rec.status==='absent') absent++;
+      else if(rec.status==='excused') excused++;
+    }
+  });
+  const attPct=total>0?Math.round(present/total*100):0;
+  const attColor=attPct>=80?'var(--success)':attPct>=50?'var(--warning)':'var(--danger)';
+
+  // Cuota stats
+  let totalPag=0, mesesOblig=0;
+  for(let i=1;i<=mesesTranscurridos;i++){
+    if(getMesEstadoMiembro(member,i,anio)!=='normal') continue;
+    if(esMesCondonado(cuotas,member.id,i)) continue;
+    mesesOblig++;
+    totalPag+=getMesAbono(cuotas,member.id,i);
+  }
+  const totalAd=Math.max(0,mesesOblig*valor-totalPag);
+  const cuotaEstado=totalAd===0&&mesesOblig>0?'Al día':'Adeuda $'+totalAd.toFixed(2);
+  const cuotaColor=totalAd===0?'var(--success)':'var(--danger)';
+
+  // Historial categorias
+  const hc=(member.historialCats||[]).slice().sort((a,b)=>a.fecha.localeCompare(b.fecha));
+
+  const html='<div id="consolidadoPrintArea">'
+    // Header with photo placeholder
+    +'<div style="display:flex;gap:1.2rem;align-items:flex-start;margin-bottom:1.5rem;padding-bottom:1.2rem;border-bottom:2px solid var(--border);">'
+    +(member.foto?'<img src="'+member.foto+'" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--red);">':'<div style="width:90px;height:90px;border-radius:50%;background:var(--dark);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--muted);">🏍️</div>')
+    +'<div style="flex:1;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.8rem;letter-spacing:3px;line-height:1;">'+member.name+'</div>'
+    +(member.nick?'<div style="font-size:0.85rem;color:var(--gold);margin-bottom:0.3rem;">"'+member.nick+'"</div>':'')
+    +'<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.4rem;">'
+    +(member.rank?'<span class="badge badge-red">'+member.rank+'</span>':'')
+    +(member.cargo?'<span class="badge badge-gold">'+member.cargo+'</span>':'')
+    +(member.tipo?'<span class="badge badge-gray">'+member.tipo+'</span>':'')
+    +'</div>'
+    +(member.year?'<div style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem;">Ingresó al club: '+member.year+'</div>':'')
+    +'</div></div>'
+    // Stats row
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:0.8rem;margin-bottom:1.5rem;">'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:'+attColor+';">'+attPct+'%</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Asistencia</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:'+cuotaColor+';">'+cuotaEstado+'</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Cuotas '+anio+'</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.8rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:var(--text);">'+present+'/'+total+'</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Reuniones</div></div>'
+    +'</div>'
+    // Personal info
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">'
+    +'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;">Datos Personales</div>'
+    +(member.phone?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">📞 '+member.phone+'</div>':'')
+    +(member.cedula?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🪪 '+member.cedula+'</div>':'')
+    +(member.sangre?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🩸 Tipo '+member.sangre+'</div>':'')
+    +(member.bike?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🏍️ '+member.bike+(member.placa?' ('+member.placa+')':'')+'</div>':'')
+    +'</div>'
+    +(member.emergNombre?'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;">Contacto de Emergencia</div>'
+    +'<div style="font-size:0.82rem;margin-bottom:0.3rem;">👤 '+member.emergNombre+(member.emergParentesco?' ('+member.emergParentesco+')':'')+'</div>'
+    +(member.emergTel?'<div style="font-size:0.82rem;">📞 '+member.emergTel+'</div>':'')
+    +'</div>':'')
+    +'</div>'
+    // Historial de categorias
+    +(hc.length>0?'<div style="margin-bottom:1.5rem;">'
+    +'<div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">📈 Historial de Categorías</div>'
+    +'<div style="position:relative;padding-left:1.5rem;">'
+    +hc.map((h,i)=>'<div style="position:relative;margin-bottom:0.8rem;">'
+      +'<div style="position:absolute;left:-1.5rem;top:4px;width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid var(--border);"></div>'
+      +(i<hc.length-1?'<div style="position:absolute;left:-1.12rem;top:14px;width:2px;height:calc(100% + 0.8rem);background:var(--border);"></div>':'')
+      +'<div style="font-size:0.7rem;color:var(--muted);">'+h.fecha+'</div>'
+      +'<div style="font-weight:600;font-size:0.88rem;">'+h.categoria+'</div>'
+      +(h.nota?'<div style="font-size:0.75rem;color:var(--muted);font-style:italic;">'+h.nota+'</div>':'')
+      +'</div>'
+    ).join('')
+    +'</div></div>':'')
+    +'</div>';
+
+  document.getElementById('consolidadoTitle').textContent='Hoja de Vida — '+member.name;
+  document.getElementById('consolidadoBody').innerHTML=html;
+  // Show hoja de vida PDF button, hide consolidado PDF button
+  const btnHoja=document.getElementById('btnImprimirHojaVida');
+  if(btnHoja) btnHoja.style.display='inline-flex';
+  openModal('modalConsolidado');
+}
+
+function verDetalleAsistencia(memberId, encodedName){
+  const memberName=decodeURIComponent(encodedName||'');
+  const {chapter}=currentUser;
+  const member=getMembers().find(m=>m.id===memberId);
+  if(!member) return;
+  const events=getEvents().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  let html='<div style="margin-bottom:1rem;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;letter-spacing:2px;">'+member.name+'</div>'
+    +(member.nick?'<div style="font-size:0.75rem;color:var(--muted);">"'+member.nick+'" · '+(member.rank||'')+'</div>':'')
+    +'</div>';
+
+  let present=0,absent=0,excused=0;
+  const rows=events.map(ev=>{
+    const att=getAttForEvent(chapter,ev.id);
+    const rec=att.find(a=>a.memberId===memberId);
+    const st=rec?rec.status:'';
+    if(st==='present') present++;
+    else if(st==='absent') absent++;
+    else if(st==='excused') excused++;
+    const color=st==='present'?'var(--success)':st==='absent'?'var(--danger)':st==='excused'?'var(--gold)':'var(--muted)';
+    const label=st==='present'?'✓ Presente':st==='absent'?'✕ Ausente':st==='excused'?'~ Justificado':'— Sin registro';
+    return '<tr><td>'+formatDate(ev.date)+'</td><td>'+ev.name+'</td>'
+      +'<td><span style="color:'+color+';font-weight:600;">'+label+'</span></td></tr>';
+  }).join('');
+
+  const total=present+absent+excused;
+  const pct=total>0?Math.round(present/total*100):0;
+  const color=pct>=80?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
+
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1rem;">'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.5rem;color:'+color+';">'+pct+'%</div>'
+    +'<div style="font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Asistencia</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.5rem;color:var(--success);">'+present+'</div>'
+    +'<div style="font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Presentes</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.5rem;color:var(--danger);">'+absent+'</div>'
+    +'<div style="font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Ausentes</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.5rem;color:var(--gold);">'+excused+'</div>'
+    +'<div style="font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Justificados</div></div>'
+    +'</div>';
+
+  if(absent>=3){
+    html+='<div class="alert alert-error" style="margin-bottom:1rem;">⚠️ <strong>Atención:</strong> '+member.name.split(' ')[0]+' tiene '+absent+' inasistencia(s) sin justificar.</div>';
+  }
+
+  html+='<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+
+  document.getElementById('consolidadoTitle').textContent='Asistencia — '+member.name;
+  document.getElementById('consolidadoBody').innerHTML='<div id="consolidadoPrintArea">'+html+'</div>';
+  openModal('modalConsolidado');
+}
+
+function imprimirReporteAsistencia(){
+  const {chapter}=currentUser;
+  const members=getMembers();
+  const events=getEvents().slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const chName=typeof CHAPTERS!=='undefined'?CHAPTERS[chapter]||chapter:chapter;
+
+  let rows='';
+  members.forEach(m=>{
+    let present=0,absent=0,excused=0,total=0;
+    events.forEach(ev=>{
+      const att=getAttForEvent(chapter,ev.id);
+      const rec=att.find(a=>a.memberId===m.id);
+      if(rec){total++;
+        if(rec.status==='present') present++;
+        else if(rec.status==='absent') absent++;
+        else if(rec.status==='excused') excused++;
+      }
+    });
+    const pct=total>0?Math.round(present/total*100):0;
+    const estado=pct>=80?'Regular':pct>=50?'Irregular':'Crítico';
+    const color=pct>=80?'#2ecc71':pct>=50?'#f39c12':'#e74c3c';
+    rows+='<tr><td>'+m.name+(m.nick?' "'+m.nick+'"':'')+'</td><td>'+(m.rank||'—')+'</td>'
+      +'<td style="text-align:center;">'+present+'</td>'
+      +'<td style="text-align:center;color:#e74c3c;font-weight:bold;">'+absent+'</td>'
+      +'<td style="text-align:center;">'+excused+'</td>'
+      +'<td style="text-align:center;font-weight:bold;color:'+color+';">'+pct+'%</td>'
+      +'<td style="text-align:center;font-weight:bold;color:'+color+';">'+estado+'</td>'
+      +'</tr>';
+  });
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Reporte Asistencia — ${chName}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{font-family:Barlow,sans-serif;font-size:11px;padding:1.5rem;color:#111;}
+      h1{font-family:Bebas Neue;font-size:1.8rem;letter-spacing:4px;margin-bottom:0.2rem;}
+      table{width:100%;border-collapse:collapse;margin-top:1rem;}
+      th{background:#1a1a1a;color:#fff;padding:0.5rem 0.7rem;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+      td{padding:0.5rem 0.7rem;border-bottom:1px solid #eee;}
+      @media print{body{padding:0.5rem;}}
+    </style></head><body>
+    <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:0.8rem;margin-bottom:1rem;">
+      <h1>VIAJEROS RACING ECUADOR</h1>
+      <div style="font-size:0.8rem;letter-spacing:3px;text-transform:uppercase;color:#666;">Reporte de Asistencia · ${chName}</div>
+      <div style="font-size:0.75rem;color:#888;margin-top:0.3rem;">${events.length} evento(s) · Generado: ${new Date().toLocaleDateString('es-EC',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+    </div>
+    <table>
+      <thead><tr><th>Member</th><th>Categoría</th><th>Presentes</th><th>Ausentes</th><th>Justificados</th><th>% Asist.</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    </body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),800);
+}
+
+
+function imprimirHojaVida(){
+  const area=document.getElementById('consolidadoPrintArea');
+  if(!area) return;
+  const title=document.getElementById('consolidadoTitle').textContent;
+  const win=window.open('','_blank','width=800,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>${title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{background:#fff;color:#111;font-family:Barlow,sans-serif;padding:2rem;font-size:12px;}
+      .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:2px;margin-right:4px;}
+      .badge-red{background:#fde;color:#c00;}
+      .badge-gold{background:#fef3cd;color:#856404;}
+      .badge-gray{background:#eee;color:#555;}
+      @media print{body{padding:1rem;}}
+    </style></head><body>
+    <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:0.8rem;margin-bottom:1.5rem;">
+      <div style="font-family:Bebas Neue;font-size:1.6rem;letter-spacing:4px;">VIAJEROS RACING ECUADOR</div>
+      <div style="font-size:0.7rem;letter-spacing:3px;text-transform:uppercase;color:#666;">Hoja de Vida del Member</div>
+    </div>
+    ${area.innerHTML}
+    <div style="margin-top:1.5rem;padding-top:0.8rem;border-top:1px solid #ccc;font-size:0.65rem;color:#888;text-align:center;">
+      Generado el ${new Date().toLocaleDateString('es-EC',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}
+    </div></body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),800);
+}
+
+async function renderAttendanceSection(){
+  const {chapter,role}=currentUser;
+  const canEdit=role==='secretary';
+  const events=getEvents();
+  const members=getMembers();
+  const container=document.getElementById('attContent');
+
+  // Pre-cargar asistencia de todos los eventos que aún no estén en state
+  const eventsToLoad=events.filter(ev=>!state.attendance[`${chapter}_${ev.id}`]);
+  if(eventsToLoad.length>0){
+    showLoading('Cargando historial de asistencia...');
+    try{
+      await Promise.all(eventsToLoad.map(async ev=>{
+        const att=await window.fbGetCol(`chapters/${chapter}/events/${ev.id}/attendance`);
+        state.attendance[`${chapter}_${ev.id}`]=att||[];
+      }));
+    }catch(e){console.error(e);}
+    hideLoading();
+  }
+
+  // Build attendance report per member
+  const memberStats=members.map(m=>{
+    let present=0,absent=0,excused=0,total=0;
+    events.forEach(ev=>{
+      const att=getAttForEvent(chapter,ev.id);
+      const rec=att.find(a=>a.memberId===m.id);
+      if(rec){total++;
+        if(rec.status==='present') present++;
+        else if(rec.status==='absent') absent++;
+        else if(rec.status==='excused') excused++;
+      }
+    });
+    const pct=total>0?Math.round(present/total*100):0;
+    const absPct=total>0?Math.round(absent/total*100):0;
+    return {...m,present,absent,excused,total,pct,absPct};
+  }).sort((a,b)=>a.absPct-b.absPct? b.absPct-a.absPct : a.name.localeCompare(b.name));
+
+  let html='<div style="display:flex;gap:0.5rem;margin-bottom:1.2rem;border-bottom:1px solid var(--border);">'
+    +(canEdit?'<button class="nav-tab active" id="attTab1" onclick="switchAttTab(1)">✓ Tomar Asistencia</button>':'')
+    +'<button class="nav-tab '+(canEdit?'':'active')+'" id="attTab2" onclick="switchAttTab(2)">📊 Reporte por Member</button>'
+    +'</div>'
+    +'<div id="attPane1" style="display:'+(canEdit?'block':'none')+';">'
+    +(events.length===0?'<p style="color:var(--muted);">No hay eventos registrados.</p>'
+    :'<div class="form-group" style="margin-bottom:1.5rem;"><label>Seleccionar Evento</label>'
+    +'<select id="attEventSel" onchange="openAttendance(this.value)">'
+    +'<option value="">— Seleccionar —</option>'
+    +events.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(ev=>'<option value="'+ev.id+'">'+formatDate(ev.date)+' — '+ev.name+'</option>').join('')
+    +'</select></div><div id="attList"></div>')
+    +'</div>'
+    +'<div id="attPane2" style="display:'+(canEdit?'none':'block')+';">';
+
+  if(members.length===0){
+    html+='<p style="color:var(--muted);">No hay miembros.</p>';
+  } else {
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">'
+      +'<div style="font-size:0.78rem;color:var(--muted);">'+events.length+' evento(s) registrados · Click en nombre para ver detalle</div>'
+      +'<button class="btn btn-sm btn-outline" onclick="imprimirReporteAsistencia()">🖨️ PDF Reporte</button>'
+      +'</div>'
+      +'<div class="table-wrap"><table>'
+      +'<thead><tr>'
+      +'<th>Member</th><th style="text-align:center;">Presentes</th><th style="text-align:center;">Ausentes</th><th style="text-align:center;">Justificados</th><th style="text-align:center;">% Asistencia</th><th style="text-align:center;">Estado</th>'
+      +'</tr></thead><tbody>'
+      +memberStats.map(m=>{
+        const color=m.pct>=80?'var(--success)':m.pct>=50?'var(--warning)':'var(--danger)';
+        const estado=m.pct>=80?'Regular':m.pct>=50?'Irregular':'Crítico';
+        const estadoBadge=m.pct>=80?'badge-green':m.pct>=50?'badge-gold':'badge-red';
+        return '<tr style="cursor:pointer;" onclick="verDetalleAsistencia(this.dataset.mid,this.dataset.mname)" data-mid="'+m.id+'" data-mname="'+encodeURIComponent(m.name)+'" title="Ver detalle">'
+          +'<td><div style="font-weight:500;font-size:0.88rem;">'+m.name+'</div>'+(m.nick?'<div style="font-size:0.7rem;color:var(--muted);">"'+m.nick+'"</div>':'')+'</td>'
+          +'<td style="text-align:center;color:var(--success);font-weight:700;">'+m.present+'</td>'
+          +'<td style="text-align:center;color:var(--danger);font-weight:700;">'+m.absent+'</td>'
+          +'<td style="text-align:center;color:var(--gold);font-weight:700;">'+m.excused+'</td>'
+          +'<td style="text-align:center;"><div style="font-family:Bebas Neue;font-size:1.2rem;color:'+color+';">'+m.pct+'%</div>'
+          +'<div style="height:4px;background:var(--border);border-radius:2px;margin-top:2px;"><div style="height:100%;width:'+m.pct+'%;background:'+color+';border-radius:2px;"></div></div></td>'
+          +'<td style="text-align:center;"><span class="badge '+estadoBadge+'">'+estado+'</span></td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+function switchAttTab(tab){
+  document.getElementById('attPane1').style.display=tab===1?'block':'none';
+  document.getElementById('attPane2').style.display=tab===2?'block':'none';
+  const t1=document.getElementById('attTab1');
+  const t2=document.getElementById('attTab2');
+  if(t1) t1.classList.toggle('active',tab===1);
+  if(t2) t2.classList.toggle('active',tab===2);
 }
 function loadAttendance(eventId){
   const sel=document.getElementById('attEventSel');if(sel&&eventId)sel.value=eventId;
@@ -1282,6 +1701,8 @@ async function abrirConsolidadoMember(memberId){
 
   document.getElementById('consolidadoTitle').textContent = member.name + (member.nick ? ' "'+member.nick+'"' : '');
   document.getElementById('consolidadoBody').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);">Cargando historial...</div>';
+  const btnHV=document.getElementById('btnImprimirHojaVida');
+  if(btnHV) btnHV.style.display='none';
   openModal('modalConsolidado');
 
   // Load all available years from state + current year
@@ -1841,6 +2262,210 @@ async function aplicarMesCompleto(){
   hideLoading();togglePanelMesCompleto();renderCuotas();
 }
 
+// ── PERFIL MEMBER DESDE MASTER ──
+async function abrirPerfilMasterMember(chapterId, memberId){
+  // Temporarily set context so abrirHojaVida / verDetalleAsistencia can run
+  const prevUser = {...currentUser};
+  currentUser = {...currentUser, chapter: chapterId};
+
+  // Load attendance for all events of this chapter if not yet loaded
+  const events = getEvents(chapterId);
+  const eventsToLoad = events.filter(ev=>!state.attendance[`${chapterId}_${ev.id}`]);
+  if(eventsToLoad.length>0){
+    showLoading('Cargando asistencia...');
+    try{
+      await Promise.all(eventsToLoad.map(async ev=>{
+        const att=await window.fbGetCol(`chapters/${chapterId}/events/${ev.id}/attendance`);
+        state.attendance[`${chapterId}_${ev.id}`]=att||[];
+      }));
+    }catch(e){console.error(e);}
+    hideLoading();
+  }
+
+  const member = getMembers(chapterId).find(m=>m.id===memberId);
+  if(!member){currentUser=prevUser;return;}
+
+  const chName = CHAPTERS[chapterId]||chapterId;
+  const eventsAll = getEvents(chapterId).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const cfg = getCuotaCfg(chapterId);
+  const anio = cfg.anio||new Date().getFullYear();
+  const valor = parseFloat(cfg.valor)||0;
+  const mesActual = new Date().getMonth()+1;
+
+  // Attendance stats
+  let present=0,absent=0,excused=0;
+  eventsAll.forEach(ev=>{
+    const att=getAttForEvent(chapterId,ev.id);
+    const rec=att.find(a=>a.memberId===memberId);
+    if(rec){
+      if(rec.status==='present') present++;
+      else if(rec.status==='absent') absent++;
+      else if(rec.status==='excused') excused++;
+    }
+  });
+  const total=present+absent+excused;
+  const pct=total>0?Math.round(present/total*100):0;
+  const attColor=pct>=80?'var(--success)':pct>=50?'var(--warning)':'var(--danger)';
+
+  // Cuota stats (all years)
+  let grandTotalPag=0, grandTotalAd=0;
+  for(let y=anio;y>=2025;y--){
+    const key=chapterId+'_'+y;
+    if(!state.cuotas[key]) continue;
+    const cuotasAnio=state.cuotas[key];
+    const mT=y<new Date().getFullYear()?12:mesActual;
+    for(let i=1;i<=mT;i++){
+      if(getMesEstadoMiembro(member,i,y)!=='normal') continue;
+      if(esMesCondonado(cuotasAnio,member.id,i)) continue;
+      const ab=getMesAbono(cuotasAnio,member.id,i);
+      grandTotalPag+=ab;
+      grandTotalAd+=Math.max(0,valor-ab);
+    }
+  }
+
+  // Attendance rows for detail
+  const attRows = eventsAll.map(ev=>{
+    const att=getAttForEvent(chapterId,ev.id);
+    const rec=att.find(a=>a.memberId===memberId);
+    const st=rec?rec.status:'';
+    const color=st==='present'?'var(--success)':st==='absent'?'var(--danger)':st==='excused'?'var(--gold)':'var(--muted)';
+    const label=st==='present'?'✓ Presente':st==='absent'?'✕ Ausente':st==='excused'?'~ Justificado':'— Sin registro';
+    return '<tr><td>'+formatDate(ev.date)+'</td><td>'+ev.name+'</td>'
+      +'<td><span style="color:'+color+';font-weight:600;">'+label+'</span></td></tr>';
+  }).join('');
+
+  const html = '<div id="consolidadoPrintArea">'
+    // Header
+    +'<div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:1.2rem;padding-bottom:1rem;border-bottom:2px solid var(--border);">'
+    +(member.foto?'<img src="'+member.foto+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--red);">':'<div style="width:80px;height:80px;border-radius:50%;background:var(--dark);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:var(--muted);">🏍️</div>')
+    +'<div style="flex:1;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.6rem;letter-spacing:3px;line-height:1;">'+member.name+'</div>'
+    +(member.nick?'<div style="font-size:0.82rem;color:var(--gold);margin-bottom:0.3rem;">"'+member.nick+'"</div>':'')
+    +'<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.3rem;">'
+    +(member.rank?'<span class="badge badge-red">'+member.rank+'</span>':'')
+    +(member.cargo?'<span class="badge badge-gold">'+member.cargo+'</span>':'')
+    +'<span class="badge badge-blue">'+chName+'</span>'
+    +'</div>'
+    +'</div>'
+    +'<div style="text-align:right;">'
+    +'<button class="btn btn-sm btn-outline" onclick="imprimirPerfilMaster(\''+chapterId+'\',\''+memberId+'\')">🖨️ PDF Inasistencias</button><br><br>'
+    +'<button class="btn btn-sm" style="background:rgba(200,168,75,0.2);border:1px solid var(--gold);color:var(--gold);" onclick="imprimirConsolidadoMaster(\''+chapterId+'\',\''+memberId+'\')">📄 PDF Cuotas</button>'
+    +'</div>'
+    +'</div>'
+    // Stats
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.7rem;margin-bottom:1.2rem;">'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:'+attColor+';">'+pct+'%</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Asistencia</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:var(--success);">'+present+'</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Presentes</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:var(--danger);">'+absent+'</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Ausentes</div></div>'
+    +'<div style="background:var(--dark);border:1px solid var(--border);border-radius:4px;padding:0.7rem;text-align:center;">'
+    +'<div style="font-family:Bebas Neue;font-size:1.4rem;color:'+( grandTotalAd>0?'var(--danger)':'var(--muted)')+';">$'+grandTotalAd.toFixed(2)+'</div>'
+    +'<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Adeuda Cuotas</div></div>'
+    +'</div>'
+    // Personal data
+    +(member.phone||member.cedula||member.bike?
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:1.2rem;">'
+      +'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;">Datos</div>'
+      +(member.phone?'<div style="font-size:0.82rem;margin-bottom:0.25rem;">📞 '+member.phone+'</div>':'')
+      +(member.cedula?'<div style="font-size:0.82rem;margin-bottom:0.25rem;">🪪 '+member.cedula+'</div>':'')
+      +(member.bike?'<div style="font-size:0.82rem;margin-bottom:0.25rem;">🏍️ '+member.bike+(member.placa?' ('+member.placa+')':'')+'</div>':'')
+      +'</div>'
+      +(member.emergNombre?'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;">Emergencia</div>'
+      +'<div style="font-size:0.82rem;">'+member.emergNombre+'</div>'
+      +(member.emergTel?'<div style="font-size:0.82rem;color:var(--muted);">'+member.emergTel+'</div>':'')
+      +'</div>':'')
+      +'</div>':'')
+    // Attendance detail table
+    +(absent>=3?'<div class="alert alert-error" style="margin-bottom:0.8rem;">⚠️ '+member.name.split(' ')[0]+' tiene '+absent+' inasistencia(s) sin justificar.</div>':'')
+    +'<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">Historial de Asistencia</div>'
+    +'<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Evento</th><th>Estado</th></tr></thead><tbody>'+attRows+'</tbody></table></div>'
+    +'</div>';
+
+  document.getElementById('consolidadoTitle').textContent='Perfil — '+member.name+' · '+chName;
+  document.getElementById('consolidadoBody').innerHTML=html;
+  const btnHV=document.getElementById('btnImprimirHojaVida');
+  if(btnHV) btnHV.style.display='none';
+  const btnC=document.getElementById('btnImprimirConsolidado');
+  if(btnC) btnC.style.display='none';
+  openModal('modalConsolidado');
+  currentUser=prevUser;
+}
+
+function imprimirPerfilMaster(chapterId, memberId){
+  const member=(state.members[chapterId]||[]).find(m=>m.id===memberId);
+  if(!member) return;
+  const chName=CHAPTERS[chapterId]||chapterId;
+  const events=(state.events[chapterId]||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  let present=0,absent=0,excused=0;
+  const rows=events.map(ev=>{
+    const att=getAttForEvent(chapterId,ev.id);
+    const rec=att.find(a=>a.memberId===memberId);
+    const st=rec?rec.status:'';
+    if(st==='present')present++;else if(st==='absent')absent++;else if(st==='excused')excused++;
+    const color=st==='present'?'#27ae60':st==='absent'?'#e74c3c':st==='excused'?'#c8a84b':'#999';
+    const label=st==='present'?'✓ Presente':st==='absent'?'✕ Ausente':st==='excused'?'~ Justificado':'— Sin registro';
+    return '<tr><td>'+formatDate(ev.date)+'</td><td>'+ev.name+'</td><td style="color:'+color+';font-weight:600;">'+label+'</td></tr>';
+  }).join('');
+  const total=present+absent+excused;
+  const pct=total>0?Math.round(present/total*100):0;
+  const pctColor=pct>=80?'#27ae60':pct>=50?'#f39c12':'#e74c3c';
+  const win=window.open('','_blank','width=800,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Asistencia — ${member.name}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Barlow,sans-serif;font-size:11px;padding:2rem;color:#111;}
+    h1{font-family:Bebas Neue;font-size:1.6rem;letter-spacing:4px;margin-bottom:0.2rem;}
+    table{width:100%;border-collapse:collapse;margin-top:1rem;}th{background:#1a1a1a;color:#fff;padding:0.5rem 0.7rem;text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+    td{padding:0.5rem 0.7rem;border-bottom:1px solid #eee;}.stats{display:flex;gap:1rem;margin:1rem 0;}
+    .stat{flex:1;background:#f8f8f8;border:1px solid #eee;border-radius:4px;padding:0.7rem;text-align:center;}
+    .stat-n{font-size:1.4rem;font-weight:700;font-family:Bebas Neue;}.stat-l{font-size:8px;color:#999;text-transform:uppercase;letter-spacing:1px;}
+    .alert{background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:0.7rem;margin:0.8rem 0;font-size:11px;}
+    @media print{body{padding:1rem;}}</style></head><body>
+    <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:0.8rem;margin-bottom:1rem;">
+      <div style="font-family:Bebas Neue;font-size:1.5rem;letter-spacing:4px;">VIAJEROS RACING ECUADOR</div>
+      <div style="font-size:0.75rem;letter-spacing:3px;text-transform:uppercase;color:#666;">Reporte de Asistencia · ${chName}</div>
+    </div>
+    <div style="display:flex;gap:0.8rem;align-items:center;margin-bottom:1rem;">
+      <div><div style="font-family:Bebas Neue;font-size:1.4rem;letter-spacing:2px;">${member.name}${member.nick?' "'+member.nick+'"':''}</div>
+      <div style="font-size:0.7rem;color:#888;">${member.rank||''} · ${chName}</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n" style="color:${pctColor};">${pct}%</div><div class="stat-l">Asistencia</div></div>
+      <div class="stat"><div class="stat-n" style="color:#27ae60;">${present}</div><div class="stat-l">Presentes</div></div>
+      <div class="stat"><div class="stat-n" style="color:#e74c3c;">${absent}</div><div class="stat-l">Ausentes</div></div>
+      <div class="stat"><div class="stat-n" style="color:#c8a84b;">${excused}</div><div class="stat-l">Justificados</div></div>
+    </div>
+    ${absent>=3?'<div class="alert">⚠️ '+member.name.split(' ')[0]+' tiene '+absent+' inasistencia(s) sin justificar.</div>':''}
+    <table><thead><tr><th>Fecha</th><th>Evento</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="margin-top:1.5rem;padding-top:0.8rem;border-top:1px solid #ccc;font-size:0.65rem;color:#888;text-align:center;">
+      Generado el ${new Date().toLocaleDateString('es-EC',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})} · Viajeros Racing Ecuador
+    </div></body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),800);
+}
+
+async function imprimirConsolidadoMaster(chapterId, memberId){
+  // Load cuotas for all years for this chapter
+  const currentYear=new Date().getFullYear();
+  for(let y=currentYear;y>=2025;y--){
+    const key=chapterId+'_'+y;
+    if(!state.cuotas[key]){
+      try{const doc=await window.fbGet('chapters/'+chapterId+'/config/cuotas_'+y);state.cuotas[key]=doc||{};}catch(e){state.cuotas[key]={};}
+    }
+  }
+  const prevUser={...currentUser};
+  currentUser={...currentUser,chapter:chapterId};
+  await abrirConsolidadoMember(memberId);
+  currentUser=prevUser;
+  // After consolidado loads, trigger print
+  setTimeout(()=>imprimirConsolidado(),600);
+}
+
 // ── REPORTES MASTER ──
 async function generarCodigoRecuperacion(chapter){
   const chName=CHAPTERS[chapter];
@@ -1851,7 +2476,6 @@ async function generarCodigoRecuperacion(chapter){
     await waitForFb();
     await window.fbSet(`chapters/${chapter}/config/auth`,{recoveryCode:code});
     hideLoading();
-    // Mostrar código en un alert amigable
     const msg=`✅ CÓDIGO DE RECUPERACIÓN\n\nCapítulo: ${chName}\nCódigo: ${code}\n\nComparte este código con el secretario o presidente del capítulo. Expira al ser usado.`;
     alert(msg);
     showToast(`Código generado para ${chName}: ${code}`);
@@ -1875,21 +2499,65 @@ function renderReportes(){
     </div>
     <p style="font-size:0.72rem;color:var(--border);margin-top:1rem;">Tip: La contraseña maestra <strong style="color:var(--gold)">VRMATRIZ</strong> también puede entrar a cualquier capítulo en emergencia.</p>
   </div>`;
+
   Object.entries(CHAPTERS).forEach(([id,name])=>{
     const members=getMembers(id);const events=getEvents(id);
     const cfg=getCuotaCfg(id);const anio=cfg.anio||new Date().getFullYear();
     const cuotas=getCuotaState(id,anio);
     const valor=parseFloat(cfg.valor)||0;
     const mes=anio<new Date().getFullYear()?12:new Date().getMonth()+1;
-    html+=`<div class="card"><div class="card-title">${name} <span style="font-family:Barlow;font-size:0.78rem;font-weight:400;text-transform:none;letter-spacing:0;">${members.length} miembros · ${events.length} eventos · cuota $${valor.toFixed(2)}</span></div>`;
-    if(members.length===0||events.length===0){html+=`<p style="color:var(--muted);font-size:0.85rem;">Sin datos.</p></div>`;return;}
+
+    // ── Balance financiero del chapter ──
+    let totalCuotasCh=0;
+    const currentYear=new Date().getFullYear();
+    members.forEach(m=>{
+      Object.keys(state.cuotas).forEach(key=>{
+        if(!key.startsWith(id+'_')) return;
+        const keyAnio=parseInt(key.split('_').pop());
+        if(isNaN(keyAnio)||keyAnio<2025) return;
+        const cuotasAnio=state.cuotas[key];
+        const mesesDelAnio=keyAnio<currentYear?12:Math.min(new Date().getMonth()+1,12);
+        for(let i=1;i<=mesesDelAnio;i++) totalCuotasCh+=getMesAbono(cuotasAnio,m.id,i);
+      });
+    });
+    const totalIngresosCh=totalCuotasCh+(state.ingresos?.[id]||[]).reduce((s,i)=>s+parseFloat(i.monto||0),0);
+    const totalEgresosCh=(state.egresos?.[id]||[]).reduce((s,e)=>s+parseFloat(e.monto||0),0);
+    const balanceCh=totalIngresosCh-totalEgresosCh;
+
+    html+=`<div class="card">
+      <div class="card-title">${name}
+        <span style="font-family:Barlow;font-size:0.78rem;font-weight:400;text-transform:none;letter-spacing:0;">${members.length} miembros · ${events.length} eventos · cuota $${valor.toFixed(2)}</span>
+      </div>
+      <!-- Balance financiero -->
+      <div style="display:flex;flex-wrap:wrap;gap:0.7rem;margin-bottom:1.2rem;padding:0.8rem;background:var(--dark);border:1px solid var(--border);border-radius:4px;">
+        <div style="text-align:center;flex:1;min-width:100px;">
+          <div style="font-family:Bebas Neue;font-size:1.3rem;color:var(--success);">$${totalIngresosCh.toFixed(2)}</div>
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Total Ingresos</div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:100px;">
+          <div style="font-family:Bebas Neue;font-size:1.3rem;color:var(--danger);">$${totalEgresosCh.toFixed(2)}</div>
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Total Egresos</div>
+        </div>
+        <div style="text-align:center;flex:1;min-width:100px;border-left:1px solid var(--border);padding-left:0.7rem;">
+          <div style="font-family:Bebas Neue;font-size:1.5rem;color:${balanceCh>=0?'var(--success)':'var(--danger)'};">$${balanceCh.toFixed(2)}</div>
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Balance General</div>
+        </div>
+      </div>`;
+
+    if(members.length===0||events.length===0){html+=`<p style="color:var(--muted);font-size:0.85rem;">Sin datos de asistencia.</p></div>`;return;} // forEach return = continue
     const lastEvents=events.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).reverse();
     html+=`<div class="table-wrap"><table><thead><tr><th>Miembro</th>`;
     lastEvents.forEach(ev=>{html+=`<th style="text-align:center;font-size:0.62rem;">${formatDate(ev.date)}</th>`;});
     html+=`<th style="text-align:center;">Asist.%</th><th style="text-align:center;">Pagado</th><th style="text-align:center;">Adeuda</th></tr></thead><tbody>`;
     members.forEach(m=>{
       let pc=0;
-      html+=`<tr><td><div style="font-weight:500;font-size:0.85rem;">${m.name}</div>${m.nick?`<div style="font-size:0.68rem;color:var(--muted);">"${m.nick}"</div>`:''}</td>`;
+      html+=`<tr>
+        <td>
+          <div style="font-weight:500;font-size:0.85rem;cursor:pointer;color:var(--text);text-decoration:underline;text-decoration-color:var(--border);"
+               onclick="abrirPerfilMasterMember('${id}','${m.id}')"
+               title="Ver perfil del member">${m.name}</div>
+          ${m.nick?`<div style="font-size:0.68rem;color:var(--muted);">"${m.nick}"</div>`:''}
+        </td>`;
       lastEvents.forEach(ev=>{
         const att=getAttForEvent(id,ev.id);const rec=att.find(a=>a.memberId===m.id);
         const s=rec?.status||'';if(s==='present')pc++;
@@ -2142,8 +2810,10 @@ function descargarCuotasExcel(chapter){
 //  EGRESOS
 // ══════════════════════════════════════════════
 const EGRESO_CATS=['Alimentación','Eventos / Rodadas','Herramientas y Equipo','Mantenimiento','Administrativo','Premios / Reconocimientos','Otro'];
+const INGRESO_CATS=['Venta de productos','Donación','Patrocinio','Evento / Rifas','Multas','Otro'];
 
 function getEgresos(ch){ return state.egresos?.[ch||currentUser.chapter]||[]; }
+function getIngresos(ch){ return state.ingresos?.[ch||currentUser.chapter]||[]; }
 
 async function loadEgresosChapter(chapter){
   try{
@@ -2152,6 +2822,64 @@ async function loadEgresosChapter(chapter){
     if(!state.egresos) state.egresos={};
     state.egresos[chapter]=docs||[];
   }catch(e){console.error(e);}
+}
+async function loadIngresosChapter(chapter){
+  try{
+    await waitForFb();
+    const docs=await window.fbGetCol(`chapters/${chapter}/ingresos`);
+    if(!state.ingresos) state.ingresos={};
+    state.ingresos[chapter]=docs||[];
+  }catch(e){console.error(e);}
+}
+
+
+function abrirModalIngreso(){
+  document.getElementById('ingresoFecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ingresoMonto').value='';
+  document.getElementById('ingresoResponsable').value='';
+  document.getElementById('ingresoDescripcion').value='';
+  const sel=document.getElementById('ingresoCategoria');
+  sel.innerHTML=INGRESO_CATS.map(c=>'<option>'+c+'</option>').join('');
+  openModal('modalIngreso');
+}
+async function guardarIngreso(){
+  const {chapter}=currentUser;
+  const fecha=document.getElementById('ingresoFecha').value;
+  const monto=document.getElementById('ingresoMonto').value;
+  const categoria=document.getElementById('ingresoCategoria').value;
+  const responsable=document.getElementById('ingresoResponsable').value.trim();
+  const descripcion=document.getElementById('ingresoDescripcion').value.trim();
+  if(!fecha||!monto) return showToast('Fecha y monto son obligatorios','error');
+  const id=genId();
+  const ingreso={id,fecha,monto:parseFloat(monto),categoria,responsable,descripcion,creadoEn:new Date().toISOString()};
+  showLoading('Guardando...');window.updateSync('syncing');
+  try{
+    await waitForFb();
+    await window.fbSet('chapters/'+chapter+'/ingresos/'+id,ingreso);
+    if(!state.ingresos) state.ingresos={};
+    if(!state.ingresos[chapter]) state.ingresos[chapter]=[];
+    state.ingresos[chapter].push(ingreso);
+    window.updateSync('online');
+    closeModal('modalIngreso');
+    renderEgresos();
+    showToast('✓ Ingreso registrado.');
+  }catch(e){console.error(e);showToast('Error al guardar','error');}
+  hideLoading();
+}
+async function eliminarIngreso(id){
+  if(!confirm('¿Eliminar este ingreso?')) return;
+  const {chapter}=currentUser;
+  showLoading('Eliminando...');window.updateSync('syncing');
+  try{
+    await waitForFb();
+    await window.fbDel('chapters/'+chapter+'/ingresos/'+id);
+    if(state.ingresos&&state.ingresos[chapter])
+      state.ingresos[chapter]=state.ingresos[chapter].filter(i=>i.id!==id);
+    window.updateSync('online');
+    renderEgresos();
+    showToast('✓ Ingreso eliminado.');
+  }catch(e){console.error(e);showToast('Error al eliminar','error');}
+  hideLoading();
 }
 
 function renderEgresos(){
@@ -2165,35 +2893,34 @@ function renderEgresos(){
   }
 
   const egresos=getEgresos().slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const ingresosComerciales=getIngresos().slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const totalEgresos=egresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
+  const totalIngresosComerciales=ingresosComerciales.reduce((s,i)=>s+parseFloat(i.monto||0),0);
   const cfg=getCuotaCfg();
   const anio=cfg.anio||new Date().getFullYear();
   const valor=parseFloat(cfg.valor)||0;
   const mesActual=new Date().getMonth()+1;
-  // Sumar cobrado de TODOS los años disponibles en state.cuotas
-  let totalCobrado=0;
+  let totalCuotas=0;
   const currentYear=new Date().getFullYear();
   getMembers().forEach(m=>{
-    // Recorrer todos los años cargados en state para este chapter
     Object.keys(state.cuotas).forEach(key=>{
       if(!key.startsWith(chapter+'_')) return;
       const keyAnio=parseInt(key.split('_').pop());
       if(isNaN(keyAnio)||keyAnio<2025) return;
       const cuotasAnio=state.cuotas[key];
       const mesesDelAnio=keyAnio<currentYear?12:Math.min(mesActual,12);
-      for(let i=1;i<=mesesDelAnio;i++){
-        totalCobrado+=getMesAbono(cuotasAnio,m.id,i);
-      }
+      for(let i=1;i<=mesesDelAnio;i++) totalCuotas+=getMesAbono(cuotasAnio,m.id,i);
     });
   });
-  const balance=totalCobrado-totalEgresos;
+  const totalIngresos=totalCuotas+totalIngresosComerciales;
+  const balance=totalIngresos-totalEgresos;
 
   container.innerHTML=`
     <div class="stats-grid" style="margin-bottom:1.5rem;">
-      <div class="stat-card"><div class="stat-num" style="color:var(--success)">$${totalCobrado.toFixed(2)}</div><div class="stat-label">Total Ingresos</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--success)">$${totalCuotas.toFixed(2)}</div><div class="stat-label">Cuotas Recaudadas</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--gold)">$${totalIngresosComerciales.toFixed(2)}</div><div class="stat-label">Ingresos Comerciales</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--danger)">$${totalEgresos.toFixed(2)}</div><div class="stat-label">Total Egresos</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:${balance>=0?'var(--success)':'var(--danger)'}">$${balance.toFixed(2)}</div><div class="stat-label">Balance</div></div>
-      <div class="stat-card"><div class="stat-num gold">${egresos.length}</div><div class="stat-label">Registros</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:${balance>=0?'var(--success)':'var(--danger)'}">$${balance.toFixed(2)}</div><div class="stat-label">Balance General</div></div>
     </div>
     <div class="card">
       <div class="card-title">
@@ -2260,6 +2987,32 @@ function renderEgresos(){
         <div class="modal-body" id="comprobanteBody" style="text-align:center;"></div>
       </div>
     </div>
+
+    <!-- INGRESOS COMERCIALES -->
+    <div class="card" style="margin-top:1.5rem;">
+      <div class="card-title">
+        💰 Ingresos Comerciales
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          ${canEdit?'<button class="btn btn-sm btn-gold" onclick="abrirModalIngreso()">+ Nuevo Ingreso</button>':''}
+        </div>
+      </div>
+      ${ingresosComerciales.length===0
+        ?'<p style="color:var(--muted);font-size:0.88rem;">No hay ingresos comerciales registrados.</p>'
+        :'<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Responsable</th><th style=\"text-align:right;\">Monto</th><th></th></tr></thead><tbody>'
+          +ingresosComerciales.map(ing=>
+            '<tr>'
+            +'<td style=\"white-space:nowrap;\">'+formatDate(ing.fecha)+'</td>'
+            +'<td><span class=\"badge badge-gold\">'+(ing.categoria||'—')+'</span></td>'
+            +'<td>'+(ing.descripcion||'—')+'</td>'
+            +'<td>'+(ing.responsable||'—')+'</td>'
+            +'<td style=\"text-align:right;font-weight:700;color:var(--gold);">$'+parseFloat(ing.monto||0).toFixed(2)+'</td>'
+            +'<td>'+(canEdit?'<button class=\"btn btn-outline btn-sm\" onclick=\"eliminarIngreso(\''+ing.id+'\')\">🗑</button>':'')+'</td>'
+            +'</tr>'
+          ).join('')
+          +'<tr style=\"border-top:2px solid var(--border);\"><td colspan=\"4\" style=\"text-align:right;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;\">Total Ingresos Comerciales</td><td style=\"text-align:right;font-weight:700;color:var(--gold);font-size:1rem;">$'+totalIngresosComerciales.toFixed(2)+'</td><td></td></tr>'
+          +'</tbody></table></div>'
+      }
+    </div>
   `;
 
   // Preview foto al seleccionar
@@ -2279,28 +3032,94 @@ function renderEgresos(){
 }
 
 async function renderEgresosMaster(container){
-  showLoading('Cargando egresos...');
-  await Promise.all(Object.keys(CHAPTERS).map(ch=>loadEgresosChapter(ch)));
+  showLoading('Cargando finanzas...');
+  await Promise.all(Object.keys(CHAPTERS).map(ch=>Promise.all([loadEgresosChapter(ch),loadIngresosChapter(ch)])));
   hideLoading();
+
+  const currentYear=new Date().getFullYear();
+  let globalIngresos=0,globalEgresos=0;
+
+  // Compute per-chapter balances
+  const chapterBalances=Object.entries(CHAPTERS).map(([ch,name])=>{
+    let totalCuotas=0;
+    const members=getMembers(ch);
+    members.forEach(m=>{
+      Object.keys(state.cuotas).forEach(key=>{
+        if(!key.startsWith(ch+'_')) return;
+        const keyAnio=parseInt(key.split('_').pop());
+        if(isNaN(keyAnio)||keyAnio<2025) return;
+        const cuotasAnio=state.cuotas[key];
+        const mesesDelAnio=keyAnio<currentYear?12:Math.min(new Date().getMonth()+1,12);
+        for(let i=1;i<=mesesDelAnio;i++) totalCuotas+=getMesAbono(cuotasAnio,m.id,i);
+      });
+    });
+    const totalIngresosComerciales=(state.ingresos?.[ch]||[]).reduce((s,i)=>s+parseFloat(i.monto||0),0);
+    const totalIngresos=totalCuotas+totalIngresosComerciales;
+    const totalEgresos=(state.egresos?.[ch]||[]).reduce((s,e)=>s+parseFloat(e.monto||0),0);
+    const balance=totalIngresos-totalEgresos;
+    globalIngresos+=totalIngresos;globalEgresos+=totalEgresos;
+    return {ch,name,totalCuotas,totalIngresosComerciales,totalIngresos,totalEgresos,balance};
+  });
 
   let allEgresos=[];
   Object.keys(CHAPTERS).forEach(ch=>{
     (state.egresos?.[ch]||[]).forEach(e=>allEgresos.push({...e,_chapter:ch,_chName:CHAPTERS[ch]}));
   });
   allEgresos.sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  const totalGlobal=allEgresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
+  const globalBalance=globalIngresos-globalEgresos;
 
   container.innerHTML=`
-    <div style="font-family:Bebas Neue;font-size:2rem;letter-spacing:3px;margin-bottom:1rem;">Egresos — Todos los Capítulos</div>
-    <div class="stats-grid" style="margin-bottom:1.5rem;">
-      <div class="stat-card"><div class="stat-num" style="color:var(--danger)">$${totalGlobal.toFixed(2)}</div><div class="stat-label">Total Egresos Global</div></div>
-      <div class="stat-card"><div class="stat-num gold">${allEgresos.length}</div><div class="stat-label">Total Registros</div></div>
+    <div style="font-family:Bebas Neue;font-size:2rem;letter-spacing:3px;margin-bottom:1rem;">Finanzas — Todos los Capítulos</div>
+
+    <!-- Balance Global -->
+    <div class="card" style="margin-bottom:1.5rem;border-color:rgba(200,168,75,0.3);">
+      <div class="card-title" style="color:var(--gold);">💰 Balance General Nacional</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" style="color:var(--success)">$${globalIngresos.toFixed(2)}</div><div class="stat-label">Total Ingresos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--danger)">$${globalEgresos.toFixed(2)}</div><div class="stat-label">Total Egresos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:${globalBalance>=0?'var(--success)':'var(--danger)'}">$${globalBalance.toFixed(2)}</div><div class="stat-label">Balance General</div></div>
+        <div class="stat-card"><div class="stat-num gold">${Object.keys(CHAPTERS).length}</div><div class="stat-label">Capítulos</div></div>
+      </div>
     </div>
+
+    <!-- Balance por Chapter -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-title">📊 Balance por Capítulo</div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>Capítulo</th>
+          <th style="text-align:right;">Cuotas</th>
+          <th style="text-align:right;">Ing. Comerciales</th>
+          <th style="text-align:right;">Total Ingresos</th>
+          <th style="text-align:right;">Egresos</th>
+          <th style="text-align:right;">Balance</th>
+        </tr></thead>
+        <tbody>
+          ${chapterBalances.map(b=>`<tr>
+            <td><strong>${b.name}</strong></td>
+            <td style="text-align:right;color:var(--success);">$${b.totalCuotas.toFixed(2)}</td>
+            <td style="text-align:right;color:var(--gold);">$${b.totalIngresosComerciales.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;color:var(--success);">$${b.totalIngresos.toFixed(2)}</td>
+            <td style="text-align:right;color:var(--danger);">$${b.totalEgresos.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;font-size:1rem;color:${b.balance>=0?'var(--success)':'var(--danger)'};">$${b.balance.toFixed(2)}</td>
+          </tr>`).join('')}
+          <tr style="border-top:2px solid var(--border);">
+            <td style="font-weight:700;font-family:Barlow Condensed;letter-spacing:1px;text-transform:uppercase;font-size:0.8rem;color:var(--muted);">TOTAL</td>
+            <td></td><td></td>
+            <td style="text-align:right;font-weight:700;color:var(--success);">$${globalIngresos.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;color:var(--danger);">$${globalEgresos.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;font-size:1.1rem;color:${globalBalance>=0?'var(--success)':'var(--danger)'};">$${globalBalance.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <!-- Egresos por chapter -->
     ${Object.entries(CHAPTERS).map(([ch,name])=>{
       const egresos=(state.egresos?.[ch]||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
       const total=egresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
       return `<div class="card">
-        <div class="card-title">${name}
+        <div class="card-title">${name} — Egresos
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
             <span style="font-weight:700;color:var(--danger);">$${total.toFixed(2)}</span>
             <button class="btn btn-sm btn-outline" onclick="descargarReportePDF('${ch}')">⬇ PDF</button>
@@ -2603,7 +3422,6 @@ function togglePaid(){}
 </body>
 </html>
 
-function togglePaid(){}
 </script>
 </body>
 </html>
