@@ -2882,7 +2882,7 @@ async function eliminarIngreso(id){
   hideLoading();
 }
 
-function renderEgresos(){
+async function renderEgresos(){
   const {chapter,role}=currentUser;
   const isMaster=chapter==='MASTER';
   const canEdit=role==='secretary';
@@ -2892,25 +2892,34 @@ function renderEgresos(){
     renderEgresosMaster(container); return;
   }
 
+  // Cargar cuotas de todos los años disponibles (2025 hasta año actual)
+  const currentYear=new Date().getFullYear();
+  const yearsToLoad=[];
+  for(let y=2025;y<=currentYear;y++){
+    if(!state.cuotas[chapter+'_'+y]) yearsToLoad.push(y);
+  }
+  if(yearsToLoad.length>0){
+    try{
+      await Promise.all(yearsToLoad.map(async y=>{
+        const doc=await window.fbGet(`chapters/${chapter}/config/cuotas_${y}`);
+        state.cuotas[chapter+'_'+y]=doc||{};
+      }));
+    }catch(e){console.error(e);}
+  }
+
   const egresos=getEgresos().slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const ingresosComerciales=getIngresos().slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const totalEgresos=egresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
   const totalIngresosComerciales=ingresosComerciales.reduce((s,i)=>s+parseFloat(i.monto||0),0);
   const cfg=getCuotaCfg();
-  const anio=cfg.anio||new Date().getFullYear();
-  const valor=parseFloat(cfg.valor)||0;
   const mesActual=new Date().getMonth()+1;
   let totalCuotas=0;
-  const currentYear=new Date().getFullYear();
   getMembers().forEach(m=>{
-    Object.keys(state.cuotas).forEach(key=>{
-      if(!key.startsWith(chapter+'_')) return;
-      const keyAnio=parseInt(key.split('_').pop());
-      if(isNaN(keyAnio)||keyAnio<2025) return;
-      const cuotasAnio=state.cuotas[key];
-      const mesesDelAnio=keyAnio<currentYear?12:Math.min(mesActual,12);
+    for(let y=2025;y<=currentYear;y++){
+      const cuotasAnio=state.cuotas[chapter+'_'+y]||{};
+      const mesesDelAnio=y<currentYear?12:Math.min(mesActual,12);
       for(let i=1;i<=mesesDelAnio;i++) totalCuotas+=getMesAbono(cuotasAnio,m.id,i);
-    });
+    }
   });
   const totalIngresos=totalCuotas+totalIngresosComerciales;
   const balance=totalIngresos-totalEgresos;
@@ -3418,10 +3427,6 @@ async function descargarReporteExcel(chapter){
 }
 
 function togglePaid(){}
-</script>
-</body>
-</html>
-
 </script>
 </body>
 </html>
