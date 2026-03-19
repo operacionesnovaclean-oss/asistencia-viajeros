@@ -352,12 +352,21 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <div class="form-group"><label>Cargo Directivo</label>
           <select id="mCargo">
             <option value="">— Sin cargo directivo —</option>
-            <option>Presidente</option>
-            <option>Vicepresidente</option>
-            <option>Secretario</option>
-            <option>Tesorero</option>
-            <option>Sargento de Armas</option>
-            <option>Road Captain</option>
+            <optgroup label="Directiva Nacional">
+              <option>Presidente Nacional</option>
+              <option>Vicepresidente Nacional</option>
+              <option>Secretario Nacional</option>
+              <option>Tesorero Nacional</option>
+              <option>Sargento Nacional</option>
+            </optgroup>
+            <optgroup label="Directiva de Capítulo">
+              <option>Presidente</option>
+              <option>Vicepresidente</option>
+              <option>Secretario</option>
+              <option>Tesorero</option>
+              <option>Sargento de Armas</option>
+              <option>Road Captain</option>
+            </optgroup>
           </select>
         </div>
         <div class="form-group"><label>Categoría de Miembro</label>
@@ -520,7 +529,10 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
     <div class="modal-header"><div class="modal-title" id="modalAbonoTitle">Registrar Pago</div><button class="modal-close" onclick="closeModal('modalAbono')">×</button></div>
     <div class="modal-body">
       <div id="modalAbonoInfo" style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem;"></div>
-      <div class="form-group"><label>Monto abonado (USD $)</label><input type="number" id="abonoValor" min="0" step="0.50" placeholder="0.00"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Monto abonado (USD $)</label><input type="number" id="abonoValor" min="0" step="0.50" placeholder="0.00"></div>
+        <div class="form-group"><label>Fecha de pago</label><input type="date" id="abonoFecha"></div>
+      </div>
       <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;" id="abonoAccesos"></div>
       <div class="form-actions">
         <button class="btn" onclick="guardarAbono()">Guardar</button>
@@ -1054,9 +1066,32 @@ function renderMembers(){
   const filtered=members.filter(m=>m.name.toLowerCase().includes(search)||(m.nick||'').toLowerCase().includes(search)||(m.rank||'').toLowerCase().includes(search));
   const tbody=document.getElementById('memberTbody');
   if(filtered.length===0){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:2rem;">${members.length===0?'No hay miembros registrados.':'Sin resultados.'}</td></tr>`;return;}
-  // badge colors per rank
+
+  // Calcular estado real de cuotas para cada member
+  const cfg=getCuotaCfg();
+  const anio=cfg.anio||new Date().getFullYear();
+  const valor=parseFloat(cfg.valor)||0;
+  const cuotas=getCuotaState(chapter,anio);
+  const mesActual=new Date().getMonth()+1;
+  const mesesTranscurridos=anio<new Date().getFullYear()?12:mesActual;
+
   const rankColor={'Member Full':'badge-blue','Member Full Color':'badge-gold','Member Full Patch':'badge-green','Prospecto':'badge-gray','Hangaround':'badge-gray'};
-  tbody.innerHTML=filtered.map((m,i)=>`<tr>
+  tbody.innerHTML=filtered.map((m,i)=>{
+    // Calcular cuotas reales
+    let totalPag=0, mesesOblig=0;
+    for(let mes=1;mes<=mesesTranscurridos;mes++){
+      if(getMesEstadoMiembro(m,mes,anio)!=='normal') continue;
+      if(esMesCondonado(cuotas,m.id,mes)) continue;
+      mesesOblig++;
+      totalPag+=getMesAbono(cuotas,m.id,mes);
+    }
+    const totalAd=Math.max(0,mesesOblig*valor-totalPag);
+    const alDia=mesesOblig===0||totalAd===0;
+    const parcial=!alDia&&totalPag>0;
+    const badgeClass=alDia?'badge-green':parcial?'badge-gold':'badge-red';
+    const badgeLabel=alDia?'Al día':parcial?'Parcial':'Pendiente';
+
+    return `<tr>
     <td style="color:var(--muted);font-size:0.78rem;">${i+1}</td>
     <td>
       <div style="font-weight:600;font-size:0.9rem;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);" onclick="abrirHojaVida('${m.id}')" title="Ver hoja de vida">${m.name}</div>
@@ -1074,12 +1109,16 @@ function renderMembers(){
            <div style="color:var(--muted);font-size:0.7rem;">${m.emergParentesco||''} ${m.emergTel?'· '+m.emergTel:''}</div>`
         :'<span style="color:var(--border);font-size:0.8rem;">—</span>'}
     </td>
-    <td><span class="badge ${m.paid?'badge-green':'badge-red'}">${m.paid?'Al día':'Pendiente'}</span></td>
+    <td>
+      <span class="badge ${badgeClass}">${badgeLabel}</span>
+      ${!alDia&&valor>0?`<div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">$${totalAd.toFixed(2)}</div>`:''}
+    </td>
     <td style="white-space:nowrap;">
       ${canEdit?`<button class="btn btn-outline btn-sm" onclick="editMember('${m.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="deleteMember('${m.id}')" style="margin-left:0.3rem;">✕</button>`:''}
     </td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 function openAddMember(){
   editingMemberId=null;
@@ -1687,7 +1726,14 @@ async function saveAttendance(eventId){
 function getMesAbono(cuotas,memberId,mes){
   const v=(cuotas[memberId]||{})[mes];
   if(v==='CONDONADO') return 0;
+  if(v&&typeof v==='object') return parseFloat(v.monto)||0;
   return parseFloat(v)||0;
+}
+function getMesFechaPago(cuotas,memberId,mes){
+  const v=(cuotas[memberId]||{})[mes];
+  if(!v||v==='CONDONADO') return null;
+  if(typeof v==='object') return v.fecha||null;
+  return null; // formato antiguo sin fecha
 }
 function esMesCondonado(cuotas,memberId,mes){
   return (cuotas[memberId]||{})[mes]==='CONDONADO';
@@ -2073,16 +2119,22 @@ function renderCuotas(){
         <tbody>${members.map(m=>{
           let totalPag=0;
           const cells=MONTHS.map((_,i)=>{
-            const mes=i+1;const ab=getMesAbono(cuotas,m.id,mes);
+            const mes=i+1;
+            const rawVal=(cuotas[m.id]||{})[mes]; // objeto {monto,fecha} o número o 'CONDONADO'
+            const ab=getMesAbono(cuotas,m.id,mes);
+            const fechaPago=getMesFechaPago(cuotas,m.id,mes);
             const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
             const estadoM=getMesEstadoMiembro(m,mes,anio);
             const esExento=estadoM!=='normal';
             const esCondonado=esMesCondonado(cuotas,m.id,mes);
             const abNum=parseFloat(ab)||0;
-            const pagado=!esCondonado&&abNum>=valor&&valor>0;const parcial=!esCondonado&&abNum>0&&abNum<valor;
-            if(!esFuturo&&!esExento&&!esCondonado) totalPag+=abNum;
+            const pagado=!esCondonado&&abNum>=valor&&valor>0;
+            const parcial=!esCondonado&&abNum>0&&abNum<valor;
+            if(!esExento&&!esCondonado) totalPag+=abNum;
             let bc,bt,bb,bg;
-            if(esFuturo){bc='var(--muted)';bt='—';bb='var(--border)';bg='transparent';}
+            if(esFuturo&&abNum===0){bc='var(--muted)';bt='—';bb='var(--border)';bg='transparent';}
+            else if(esFuturo&&pagado){bc='var(--success)';bt='↑';bb='var(--success)';bg='rgba(46,204,113,0.12)';}
+            else if(esFuturo&&parcial){bc='var(--warning)';bt='↑';bb='var(--warning)';bg='rgba(243,156,18,0.12)';}
             else if(estadoM==='simpatizante'){bc='#555';bt='S';bb='#444';bg='transparent';}
             else if(estadoM==='licencia'){bc='var(--blue)';bt='L';bb='var(--blue)';bg='rgba(26,111,196,0.15)';}
             else if(estadoM==='condonado_grupal'){bc='var(--gold)';bt='C';bb='var(--gold)';bg='rgba(200,168,75,0.15)';}
@@ -2090,19 +2142,31 @@ function renderCuotas(){
             else if(pagado){bc='var(--success)';bt='✓';bb='var(--success)';bg='rgba(46,204,113,0.15)';}
             else if(parcial){bc='var(--warning)';bt='~';bb='var(--warning)';bg='rgba(243,156,18,0.15)';}
             else{bc='var(--border)';bt='·';bb='var(--border)';bg='transparent';}
-            const title=estadoM==='licencia'?`${MONTHS_FULL[i]}: Licencia`:estadoM==='simpatizante'?`${MONTHS_FULL[i]}: Simpatizante (sin cuota)`:estadoM==='condonado_grupal'?`${MONTHS_FULL[i]}: Condonado por directiva (todos)`:esCondonado?`${MONTHS_FULL[i]}: Condonado individualmente`:`${MONTHS_FULL[i]}: $${abNum.toFixed(2)} / $${valor.toFixed(2)}`;
+            const esFuturoSinPago=esFuturo&&abNum===0;
+            const fechaStr=fechaPago?formatDate(fechaPago):'';
+            const titleBase=esFuturo&&abNum>0?`${MONTHS_FULL[i]}: Pago anticipado $${abNum.toFixed(2)}`:estadoM==='licencia'?`${MONTHS_FULL[i]}: Licencia`:estadoM==='simpatizante'?`${MONTHS_FULL[i]}: Simpatizante (sin cuota)`:estadoM==='condonado_grupal'?`${MONTHS_FULL[i]}: Condonado por directiva (todos)`:esCondonado?`${MONTHS_FULL[i]}: Condonado individualmente`:`${MONTHS_FULL[i]}: $${abNum.toFixed(2)} / $${valor.toFixed(2)}`;
+            const title=fechaStr?titleBase+' · '+fechaStr:titleBase;
+            // Guardar datos en mapa global para evitar comillas rotas en onclick
+            if(!window._abonoMap) window._abonoMap={};
+            window._abonoMap[m.id+'_'+mes]=rawVal;
             return `<td style="text-align:center;padding:0.35rem 0.2rem;">
-              ${esFuturo
-                ?`<div style="width:30px;height:30px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;margin:auto;opacity:0.25;"><span style="font-size:0.65rem;color:var(--muted);">—</span></div>`
+              ${esFuturoSinPago&&canEdit
+                ?`<div style="cursor:pointer;width:30px;height:30px;border-radius:50%;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;margin:auto;opacity:0.4;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='0.4'"
+                     onclick="abrirAbonoModalSafe('${m.id}',${mes},'${m.name.replace(/'/g,"'")}','${m.id}_${mes}')"
+                     title="Registrar pago anticipado de ${MONTHS_FULL[i]}">
+                   <span style="font-size:0.65rem;color:var(--muted);">+</span>
+                 </div>`
+                :esFuturoSinPago
+                  ?`<div style="width:30px;height:30px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;margin:auto;opacity:0.25;"><span style="font-size:0.65rem;color:var(--muted);">—</span></div>`
                 :(esExento||esCondonado)
                   ?`<div style="width:30px;height:30px;border-radius:50%;border:2px solid ${bb};background:${bg};display:flex;align-items:center;justify-content:center;margin:auto;opacity:${esCondonado?'1':'0.7'};"
-                       ${esCondonado&&canEdit?`onclick="abrirAbonoModal('${m.id}',${mes},'${m.name.replace(/'/g,"\\'")}',0)" style="cursor:pointer;" `:''}
+                       ${esCondonado&&canEdit?`onclick="abrirAbonoModalSafe('${m.id}',${mes},'${m.name.replace(/'/g,"'")}','${m.id}_${mes}')" style="cursor:pointer;" `:''}
                        title="${title}">
                      <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
                    </div>`
                 :canEdit
                   ?`<div style="cursor:pointer;width:30px;height:30px;border-radius:50%;border:2px solid ${bb};background:${bg};display:flex;align-items:center;justify-content:center;margin:auto;transition:all 0.2s;"
-                       onclick="abrirAbonoModal('${m.id}',${mes},'${m.name.replace(/'/g,"\\'")}',${ab})"
+                       onclick="abrirAbonoModalSafe('${m.id}',${mes},'${m.name.replace(/'/g,"'")}','${m.id}_${mes}')"
                        title="${title}">
                      <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
                    </div>`
@@ -2110,7 +2174,9 @@ function renderCuotas(){
                      <span style="font-size:0.72rem;color:${bc};font-weight:700;">${bt}</span>
                    </div>`
               }
-              ${(!esFuturo&&!esExento&&ab>0&&ab<valor)?`<div style="font-size:0.58rem;color:var(--warning);text-align:center;">$${ab.toFixed(0)}</div>`:''}
+              ${abNum>0&&abNum<valor?`<div style="font-size:0.58rem;color:var(--warning);text-align:center;">$${abNum.toFixed(0)}</div>`:''}
+              ${fechaStr&&abNum>0?`<div style="font-size:0.52rem;color:var(--muted);text-align:center;line-height:1.1;">${fechaStr}</div>`:''}
+              ${esFuturo&&abNum>=valor?`<div style="font-size:0.52rem;color:var(--success);text-align:center;opacity:0.7;">anticipo</div>`:''}
             </td>`;
           }).join('');
           let mesesObligatorios=0;
@@ -2139,6 +2205,7 @@ function renderCuotas(){
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--success);background:rgba(46,204,113,0.15);"></div>Pagado</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--warning);background:rgba(243,156,18,0.15);"></div>Parcial</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--border);"></div>Sin pago</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--success);background:rgba(46,204,113,0.12);display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:var(--success);font-weight:700;">↑</div>Anticipado</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--blue);background:rgba(26,111,196,0.15);display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:#5b9bd5;font-weight:700;">L</div>Licencia</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid #333;"></div>Simpatizante</div>
         <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.73rem;color:var(--muted);"><div style="width:13px;height:13px;border-radius:50%;border:2px solid var(--gold);background:rgba(200,168,75,0.15);display:flex;align-items:center;justify-content:center;font-size:0.55rem;color:var(--gold);font-weight:700;">C</div>Condonado</div>
@@ -2164,39 +2231,30 @@ function renderCuotas(){
         </div>
       </div>`}
     </div>
-    <div class="modal-overlay" id="modalAbono">
-      <div class="modal" style="max-width:380px;">
-        <div class="modal-header"><div class="modal-title" id="modalAbonoTitle">Registrar Pago</div><button class="modal-close" onclick="closeModal('modalAbono')">×</button></div>
-        <div class="modal-body">
-          <div id="modalAbonoInfo" style="background:var(--dark);border:1px solid var(--border);border-radius:3px;padding:0.8rem;margin-bottom:1rem;font-size:0.85rem;"></div>
-          <div class="form-group"><label>Monto abonado (USD $)</label><input type="number" id="abonoValor" min="0" step="0.50" placeholder="0.00"></div>
-          <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;" id="abonoAccesos"></div>
-          <div class="form-actions">
-            <button class="btn" onclick="guardarAbono()">Guardar</button>
-            <button class="btn btn-outline" onclick="closeModal('modalAbono')">Cancelar</button>
-            <button class="btn btn-sm" onclick="condonarAbono()" style="background:rgba(200,168,75,0.2);border:1px solid var(--gold);color:var(--gold);">🤝 Condonar</button>
-            <button class="btn btn-danger btn-sm" onclick="borrarAbono()" style="margin-left:auto;">Borrar</button>
-          </div>
-        </div>
-      </div>
-    </div>
   `;
 }
 
+function abrirAbonoModalSafe(memberId,mes,memberName,mapKey){
+  const val=(window._abonoMap||{})[mapKey];
+  abrirAbonoModal(memberId,mes,memberName,val);
+}
 function abrirAbonoModal(memberId,mes,memberName,abonoActual){
   const cfg=getCuotaCfg();const valor=parseFloat(cfg.valor)||0;
   _abonoCtx={memberId,mes,chapter:currentUser.chapter,anio:cfg.anio,valor};
   document.getElementById('modalAbonoTitle').textContent=`${MONTHS_FULL[mes-1]} — ${memberName}`;
   const esCondActual=abonoActual==='CONDONADO';
-  document.getElementById('abonoValor').value=(!esCondActual&&abonoActual>0)?abonoActual:'';
-  const abonoNum=esCondActual?0:(parseFloat(abonoActual)||0);
-  const falta=Math.max(0,valor-abonoNum);
+  const abonoMonto=esCondActual?0:(typeof abonoActual==='object'&&abonoActual?parseFloat(abonoActual.monto)||0:parseFloat(abonoActual)||0);
+  const abonoFecha=(!esCondActual&&typeof abonoActual==='object'&&abonoActual)?abonoActual.fecha||'':'';
+  document.getElementById('abonoValor').value=abonoMonto>0?abonoMonto:'';
+  document.getElementById('abonoFecha').value=abonoFecha||new Date().toISOString().split('T')[0];
+  const falta=Math.max(0,valor-abonoMonto);
   document.getElementById('modalAbonoInfo').innerHTML=`
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
       <div><span style="color:var(--muted);font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;">Cuota</span><br><strong style="color:var(--gold);">$${valor.toFixed(2)}</strong></div>
-      <div><span style="color:var(--muted);font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;">Abonado</span><br><strong style="color:var(--success);">${esCondActual?'Condonado':'$'+abonoNum.toFixed(2)}</strong></div>
+      <div><span style="color:var(--muted);font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;">Abonado</span><br><strong style="color:var(--success);">${esCondActual?'Condonado':'$'+abonoMonto.toFixed(2)}</strong></div>
       <div><span style="color:var(--muted);font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;">Falta</span><br><strong style="color:${esCondActual?'var(--gold)':falta>0?'var(--danger)':'var(--muted)'};">$${esCondActual?'0.00':falta.toFixed(2)}</strong></div>
-    </div>`;
+    </div>
+    ${abonoFecha?`<div style="margin-top:0.6rem;font-size:0.72rem;color:var(--muted);">📅 Último pago registrado: <strong style="color:var(--text);">${formatDate(abonoFecha)}</strong></div>`:''}`;
   document.getElementById('abonoAccesos').innerHTML=`
     <button class="btn btn-sm btn-outline" onclick="document.getElementById('abonoValor').value=${valor.toFixed(2)}">Completo $${valor.toFixed(2)}</button>
     ${valor>0?`<button class="btn btn-sm btn-outline" onclick="document.getElementById('abonoValor').value=${(valor/2).toFixed(2)}">50% $${(valor/2).toFixed(2)}</button>`:''}`;
@@ -2205,12 +2263,13 @@ function abrirAbonoModal(memberId,mes,memberName,abonoActual){
 async function guardarAbono(){
   const {memberId,mes,chapter,anio,valor}=_abonoCtx;
   const abono=parseFloat(document.getElementById('abonoValor').value)||0;
+  const fecha=document.getElementById('abonoFecha').value||new Date().toISOString().split('T')[0];
   showLoading('Guardando...');window.updateSync('syncing');
   try{
     const key=`${chapter}_${anio}`;
     if(!state.cuotas[key])state.cuotas[key]={};
     if(!state.cuotas[key][memberId])state.cuotas[key][memberId]={};
-    state.cuotas[key][memberId][mes]=abono;
+    state.cuotas[key][memberId][mes]={monto:abono,fecha};
     await window.fbSet(`chapters/${chapter}/config/cuotas_${anio}`,state.cuotas[key]);
     window.updateSync('online');
   }catch(e){console.error(e);}
@@ -2380,6 +2439,22 @@ async function abrirPerfilMasterMember(chapterId, memberId){
       +(member.emergTel?'<div style="font-size:0.82rem;color:var(--muted);">'+member.emergTel+'</div>':'')
       +'</div>':'')
       +'</div>':'')
+    // Historial de categorías
+    +( (member.historialCats||[]).length>0 ? (()=>{
+      const hc=(member.historialCats||[]).slice().sort((a,b)=>a.fecha.localeCompare(b.fecha));
+      return '<div style="margin-bottom:1.2rem;">'
+        +'<div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">📈 Historial de Categorías</div>'
+        +'<div style="position:relative;padding-left:1.5rem;">'
+        +hc.map((h,i)=>'<div style="position:relative;margin-bottom:0.8rem;">'
+          +'<div style="position:absolute;left:-1.5rem;top:4px;width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid var(--border);"></div>'
+          +(i<hc.length-1?'<div style="position:absolute;left:-1.12rem;top:14px;width:2px;height:calc(100% + 0.8rem);background:var(--border);"></div>':'')
+          +'<div style="font-size:0.7rem;color:var(--muted);">'+h.fecha+'</div>'
+          +'<div style="font-weight:600;font-size:0.88rem;">'+h.categoria+'</div>'
+          +(h.nota?'<div style="font-size:0.75rem;color:var(--muted);font-style:italic;">'+h.nota+'</div>':'')
+          +'</div>'
+        ).join('')
+        +'</div></div>';
+    })() : '')
     // Attendance detail table
     +(absent>=3?'<div class="alert alert-error" style="margin-bottom:0.8rem;">⚠️ '+member.name.split(' ')[0]+' tiene '+absent+' inasistencia(s) sin justificar.</div>':'')
     +'<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">Historial de Asistencia</div>'
