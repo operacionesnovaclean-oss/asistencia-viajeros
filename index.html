@@ -165,12 +165,18 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
     </div>
     <div class="form-group" id="roleGroup">
       <label>Rol</label>
-      <select id="loginRole">
+      <select id="loginRole" onchange="onRoleChange()">
         <option value="secretary">Secretario</option>
         <option value="president">Presidente</option>
+        <option value="treasurer">Tesorero</option>
       </select>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="treasurerPwdGroup" style="display:none;">
+      <label>Contraseña del Tesorero</label>
+      <input type="password" id="loginTreasurerPwd" placeholder="Contraseña exclusiva del tesorero" onkeydown="if(event.key==='Enter')doLogin()">
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:0.3rem;">El tesorero usa su propia contraseña independiente.</div>
+    </div>
+    <div class="form-group" id="mainPwdGroup">
       <label>Contraseña</label>
       <input type="password" id="loginPwd" placeholder="Ingresa tu contraseña" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
@@ -222,6 +228,13 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <option value="SALITRE">Salitre</option>
         <option value="PANAMA">Panamá</option>
         <option value="PONCE">Ponce Enrique</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Rol</label>
+      <select id="ccRole">
+        <option value="chapter">Secretario / Presidente</option>
+        <option value="treasurer">Tesorero</option>
       </select>
     </div>
     <div class="form-group">
@@ -662,6 +675,17 @@ function mostrarPanel(id){
 function onChapterChange(){
   const v=document.getElementById('loginChapter').value;
   document.getElementById('roleGroup').style.display=(v==='MASTER')?'none':'flex';
+  onRoleChange();
+}
+
+function onRoleChange(){
+  const chapter=document.getElementById('loginChapter').value;
+  const role=document.getElementById('loginRole')?.value;
+  const isTreasurer=(chapter!=='MASTER'&&role==='treasurer');
+  const tpg=document.getElementById('treasurerPwdGroup');
+  const mpg=document.getElementById('mainPwdGroup');
+  if(tpg) tpg.style.display=isTreasurer?'block':'none';
+  if(mpg) mpg.style.display=isTreasurer?'none':'block';
 }
 
 // ── FIREBASE HELPERS ──
@@ -685,12 +709,15 @@ async function doLogin(){
   try{
   const chapter=document.getElementById('loginChapter').value;
   const role=chapter==='MASTER'?'master':document.getElementById('loginRole').value;
-  const pwd=document.getElementById('loginPwd').value.trim();
+  const isTreasurer=(chapter!=='MASTER'&&role==='treasurer');
+  const pwd=isTreasurer
+    ?document.getElementById('loginTreasurerPwd').value.trim()
+    :document.getElementById('loginPwd').value.trim();
   if(!chapter) return showAlert('loginAlert','Selecciona un capítulo.','error');
   if(!pwd) return showAlert('loginAlert','Ingresa tu contraseña.','error');
 
-  // Contraseña Master entra a cualquier capítulo
-  if(pwd===MASTER_PWD){
+  // Contraseña Master entra a cualquier capítulo (excepto tesorero)
+  if(!isTreasurer && pwd===MASTER_PWD){
     currentUser={chapter:chapter==='MASTER'?'MASTER':chapter, role:chapter==='MASTER'?'master':role};
     localStorage.setItem('vre_session',JSON.stringify(currentUser));
     return await showApp();
@@ -699,9 +726,31 @@ async function doLogin(){
   if(chapter==='MASTER') return showAlert('loginAlert','Contraseña incorrecta.','error');
 
   showLoading('Verificando...');
-  const savedPwd=await getChapterPwd(chapter);
+  const authDoc=await (async()=>{
+    try{ await waitForFb(); return await window.fbGet(`chapters/${chapter}/config/auth`); }catch(e){return null;}
+  })();
   hideLoading();
 
+  // ── Flujo TESORERO ──
+  if(isTreasurer){
+    const treasurerPwd=authDoc?.treasurerPassword||null;
+    // Primera vez: clave temporal vre2026
+    if(!treasurerPwd && pwd===TEMP_PWD){
+      _pendingLogin={chapter,role:'treasurer'};
+      mostrarPanel('panelCrearClave');
+      document.querySelector('#panelCrearClave p').textContent='Primera vez como Tesorero. Crea una contraseña exclusiva para este rol.';
+      return;
+    }
+    if(treasurerPwd && pwd===treasurerPwd){
+      currentUser={chapter,role:'treasurer'};
+      localStorage.setItem('vre_session',JSON.stringify(currentUser));
+      return await showApp();
+    }
+    return showAlert('loginAlert','Contraseña de tesorero incorrecta. Primera vez: usa <strong>vre2026</strong>','error');
+  }
+
+  // ── Flujo SECRETARIO / PRESIDENTE ──
+  const savedPwd=authDoc?.password||null;
   // Primera vez con clave temporal → crear contraseña
   if(!savedPwd && pwd===TEMP_PWD){
     _pendingLogin={chapter,role};
@@ -732,7 +781,13 @@ async function crearContrasena(){
   showLoading('Guardando contraseña...');
   try{
     await waitForFb();
-    await window.fbSet(`chapters/${_pendingLogin.chapter}/config/auth`,{password:p1});
+    const isTreasurer=_pendingLogin.role==='treasurer';
+    const existing=await window.fbGet(`chapters/${_pendingLogin.chapter}/config/auth`)||{};
+    if(isTreasurer){
+      await window.fbSet(`chapters/${_pendingLogin.chapter}/config/auth`,{...existing,treasurerPassword:p1});
+    } else {
+      await window.fbSet(`chapters/${_pendingLogin.chapter}/config/auth`,{...existing,password:p1});
+    }
     currentUser={chapter:_pendingLogin.chapter,role:_pendingLogin.role};
     localStorage.setItem('vre_session',JSON.stringify(currentUser));
     _pendingLogin=null;
@@ -745,6 +800,7 @@ async function crearContrasena(){
 // ── CAMBIAR CONTRASEÑA ──
 async function cambiarContrasena(){
   const chapter=document.getElementById('ccChapter').value;
+  const ccRole=document.getElementById('ccRole')?.value||'chapter';
   const actual=document.getElementById('ccPwdActual').value.trim();
   const nueva=document.getElementById('ccPwdNueva').value.trim();
   const confirm=document.getElementById('ccPwdConfirm').value.trim();
@@ -753,20 +809,37 @@ async function cambiarContrasena(){
   if(!nueva||nueva.length<4) return showAlert('cambiarClaveAlert','La nueva contraseña debe tener al menos 4 caracteres.','error');
   if(nueva!==confirm) return showAlert('cambiarClaveAlert','Las contraseñas no coinciden.','error');
   showLoading('Verificando...');
-  const savedPwd=await getChapterPwd(chapter);
+  let authDoc=null;
+  try{ await waitForFb(); authDoc=await window.fbGet(`chapters/${chapter}/config/auth`); }catch(e){}
   hideLoading();
-  const ok=actual===MASTER_PWD||actual===TEMP_PWD||actual===savedPwd;
-  if(!ok) return showAlert('cambiarClaveAlert','Contraseña actual incorrecta.','error');
-  showLoading('Guardando...');
-  try{
-    await waitForFb();
-    await window.fbSet(`chapters/${chapter}/config/auth`,{password:nueva});
-    hideLoading();
-    mostrarPanel('panelLogin');
-    showAlert('loginAlert','✓ Contraseña actualizada. Ya puedes iniciar sesión.','success');
-    document.getElementById('loginChapter').value=chapter;
-    onChapterChange();
-  }catch(e){hideLoading();showAlert('cambiarClaveAlert','Error al guardar.','error');}
+  const isTreasurer=ccRole==='treasurer';
+  if(isTreasurer){
+    const savedPwd=authDoc?.treasurerPassword||null;
+    const ok=actual===TEMP_PWD||actual===savedPwd;
+    if(!ok) return showAlert('cambiarClaveAlert','Contraseña de tesorero incorrecta.','error');
+    showLoading('Guardando...');
+    try{
+      await waitForFb();
+      await window.fbSet(`chapters/${chapter}/config/auth`,{...authDoc,treasurerPassword:nueva});
+      hideLoading();
+      mostrarPanel('panelLogin');
+      showAlert('loginAlert','✓ Contraseña de tesorero actualizada.','success');
+    }catch(e){hideLoading();showAlert('cambiarClaveAlert','Error al guardar.','error');}
+  } else {
+    const savedPwd=authDoc?.password||null;
+    const ok=actual===MASTER_PWD||actual===TEMP_PWD||actual===savedPwd;
+    if(!ok) return showAlert('cambiarClaveAlert','Contraseña actual incorrecta.','error');
+    showLoading('Guardando...');
+    try{
+      await waitForFb();
+      await window.fbSet(`chapters/${chapter}/config/auth`,{...authDoc,password:nueva});
+      hideLoading();
+      mostrarPanel('panelLogin');
+      showAlert('loginAlert','✓ Contraseña actualizada. Ya puedes iniciar sesión.','success');
+      document.getElementById('loginChapter').value=chapter;
+      onChapterChange();
+    }catch(e){hideLoading();showAlert('cambiarClaveAlert','Error al guardar.','error');}
+  }
 }
 
 // ── RECUPERAR CONTRASEÑA con código ──
@@ -851,7 +924,7 @@ async function showApp(){
   const badge=document.getElementById('topChapterBadge');
   badge.textContent=chName;
   badge.className='chapter-badge'+(chapter==='MASTER'?' master':'');
-  document.getElementById('topRoleBadge').textContent={master:'Administrador',secretary:'Secretario',president:'Presidente'}[role];
+  document.getElementById('topRoleBadge').textContent={master:'Administrador',secretary:'Secretario',president:'Presidente',treasurer:'Tesorero'}[role]||role;
   // Show change pwd button only for chapter users (not master account)
   const cpBtn=document.getElementById('btnChangePwd');
   if(cpBtn) cpBtn.style.display=(chapter!=='MASTER')?'inline-block':'none';
@@ -901,19 +974,6 @@ async function loadChapterData(chapter){
   const anio=state.cuotaCfg[chapter].anio||new Date().getFullYear();
   const cuotasDoc=await window.fbGet(`chapters/${chapter}/config/cuotas_${anio}`);
   state.cuotas[`${chapter}_${anio}`]=cuotasDoc||{};
-  // ── Cargar asistencia de todos los eventos para calcular % correctamente ──
-  const evList=state.events[chapter]||[];
-  if(evList.length>0){
-    await Promise.all(evList.map(async ev=>{
-      const key=`${chapter}_${ev.id}`;
-      if(!state.attendance[key]){
-        try{
-          const att=await window.fbGetCol(`chapters/${chapter}/events/${ev.id}/attendance`);
-          state.attendance[key]=att||[];
-        }catch(e){state.attendance[key]=[];}
-      }
-    }));
-  }
   window.updateSync('online');
 }
 
@@ -932,14 +992,15 @@ function buildNav(){
   const tabs=document.getElementById('navTabs');tabs.innerHTML='';
   const isMaster=chapter==='MASTER';
   const isSecretary=role==='secretary';
+  const isTreasurer=role==='treasurer';
   const items=[{id:'dashboard',label:'Dashboard'}];
-  if(!isMaster){
+  if(!isMaster&&!isTreasurer){
     items.push({id:'miembros',label:'Tropa'});
     items.push({id:'eventos',label:'Eventos'});
     items.push({id:'asistencia',label:'Asistencia'});
     items.push({id:'cuotas',label:'Cuotas'});
-    items.push({id:'egresos',label:'Finanzas'});
   }
+  if(!isMaster) items.push({id:'egresos',label:'Finanzas'});
   if(isMaster) items.push({id:'egresos',label:'Finanzas'});
   if(isMaster) items.push({id:'reportes',label:'Vista Global'});
   items.forEach(item=>{
@@ -1021,6 +1082,68 @@ function renderDashboard(){
   }
   const s=getChapterStats(chapter);
   const recentEvents=getEvents().slice(-5).reverse();
+
+  // ── Dashboard del TESORERO ──
+  if(role==='treasurer'){
+    const cfg=getCuotaCfg(chapter);
+    const anio=cfg.anio||new Date().getFullYear();
+    const valor=parseFloat(cfg.valor)||0;
+    const members=getMembers(chapter);
+    const cuotas=getCuotaState(chapter,anio);
+    const mes=anio<new Date().getFullYear()?12:new Date().getMonth()+1;
+    let totalCuotas=0;
+    members.forEach(m=>{
+      Object.keys(state.cuotas).forEach(key=>{
+        if(!key.startsWith(chapter+'_')) return;
+        const keyAnio=parseInt(key.split('_').pop());
+        if(isNaN(keyAnio)||keyAnio<2025) return;
+        const cA=state.cuotas[key];
+        const mesesA=keyAnio<new Date().getFullYear()?12:Math.min(new Date().getMonth()+1,12);
+        for(let i=1;i<=mesesA;i++) totalCuotas+=getMesAbono(cA,m.id,i);
+      });
+    });
+    const totalIngresos=totalCuotas+(state.ingresos?.[chapter]||[]).reduce((s,i)=>s+parseFloat(i.monto||0),0);
+    const totalEgresos=(state.egresos?.[chapter]||[]).reduce((s,e)=>s+parseFloat(e.monto||0),0);
+    const balance=totalIngresos-totalEgresos;
+    const ingresosCom=(state.ingresos?.[chapter]||[]);
+    const egresosRec=(state.egresos?.[chapter]||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,5);
+    container.innerHTML=`
+      <div style="background:var(--card);border:1px solid rgba(200,168,75,0.3);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--yellow) 33%,var(--blue) 33%,var(--blue) 66%,var(--red) 66%);"></div>
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+          <img src="${document.getElementById('logoImg').src}" style="width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(200,168,75,0.5));">
+          <div>
+            <div style="font-family:Bebas Neue;font-size:clamp(1.2rem,4vw,2rem);letter-spacing:4px;line-height:1;">VIAJEROS RACING ECUADOR</div>
+            <div style="font-family:Bebas Neue;font-size:clamp(0.9rem,3vw,1.5rem);letter-spacing:3px;color:var(--gold);">${CHAPTERS[chapter]}</div>
+            <div style="font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;">Tesorero · Módulo Financiero 💰</div>
+          </div>
+          <span class="badge badge-gold" style="margin-left:auto;align-self:flex-start;">Firebase</span>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num" style="color:var(--success);">$${totalIngresos.toFixed(2)}</div><div class="stat-label">Total Ingresos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--danger);">$${totalEgresos.toFixed(2)}</div><div class="stat-label">Total Egresos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:${balance>=0?'var(--success)':'var(--danger)'};">$${balance.toFixed(2)}</div><div class="stat-label">Balance</div></div>
+        <div class="stat-card"><div class="stat-num gold">${ingresosCom.length}</div><div class="stat-label">Ing. Comerciales</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--danger);">${(state.egresos?.[chapter]||[]).length}</div><div class="stat-label">Egresos Registrados</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Últimos Egresos
+          <button class="btn btn-sm btn-danger" onclick="switchSection('egresos')">Ver todo →</button>
+        </div>
+        ${egresosRec.length===0?'<p style="color:var(--muted);font-size:0.9rem;">Sin egresos registrados aún.</p>':`
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th style="text-align:right;">Monto</th></tr></thead><tbody>
+        ${egresosRec.map(e=>`<tr>
+          <td style="font-size:0.82rem;">${formatDate(e.fecha)}</td>
+          <td><span class="badge badge-red" style="font-size:0.62rem;">${e.categoria||'—'}</span></td>
+          <td style="font-size:0.82rem;">${e.descripcion||'—'}</td>
+          <td style="text-align:right;font-weight:700;color:var(--danger);">$${parseFloat(e.monto||0).toFixed(2)}</td>
+        </tr>`).join('')}
+        </tbody></table></div>`}
+      </div>`;
+    return;
+  }
+
   container.innerHTML=`
     <!-- Cabecera del capítulo -->
     <div style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;">
@@ -1034,7 +1157,7 @@ function renderDashboard(){
         <div>
           <div style="font-family:Bebas Neue;font-size:clamp(1.4rem,5vw,2.5rem);letter-spacing:4px;line-height:1;">VIAJEROS RACING ECUADOR</div>
           <div style="font-family:Bebas Neue;font-size:clamp(1rem,4vw,1.8rem);letter-spacing:3px;color:var(--red);">${CHAPTERS[chapter]}</div>
-          <div style="font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;">${{secretary:'Secretario',president:'Presidente'}[role]} · Datos en tiempo real 🔥</div>
+          <div style="font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:0.2rem;">${{secretary:'Secretario',president:'Presidente',treasurer:'Tesorero'}[role]||role} · Datos en tiempo real 🔥</div>
         </div>
         <div class="badge badge-blue" style="margin-left:auto;align-self:flex-start;">Firebase</div>
       </div>
@@ -2586,6 +2709,19 @@ function renderReportes(){
         </button>`).join('')}
     </div>
     <p style="font-size:0.72rem;color:var(--border);margin-top:1rem;">Tip: La contraseña maestra <strong style="color:var(--gold)">VRMATRIZ</strong> también puede entrar a cualquier capítulo en emergencia.</p>
+  </div>
+
+  <!-- PANEL DE GESTIÓN DE TESOREROS -->
+  <div class="card" style="margin-bottom:1.5rem;border-color:rgba(200,168,75,0.25);">
+    <div class="card-title" style="color:var(--gold);">💰 Contraseñas de Tesorero por Capítulo</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Establece o resetea la contraseña del tesorero de cada capítulo. El tesorero tiene acceso exclusivo al módulo de Finanzas.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:0.6rem;" id="treasurerPwdBtns">
+      ${Object.entries(CHAPTERS).map(([id,name])=>`
+        <button class="btn btn-outline btn-sm" style="border-color:rgba(200,168,75,0.4);color:var(--gold);" onclick="gestionarClaveTesorer('${id}','${name}')">
+          💰 ${name}
+        </button>`).join('')}
+    </div>
+    <p style="font-size:0.72rem;color:var(--border);margin-top:1rem;">Primera vez: el tesorero usa <strong style="color:var(--gold)">vre2026</strong> y crea su propia contraseña al ingresar.</p>
   </div>`;
 
   Object.entries(CHAPTERS).forEach(([id,name])=>{
@@ -2973,7 +3109,7 @@ async function eliminarIngreso(id){
 async function renderEgresos(){
   const {chapter,role}=currentUser;
   const isMaster=chapter==='MASTER';
-  const canEdit=role==='secretary';
+  const canEdit=role==='secretary'||role==='treasurer';
   const container=document.getElementById('egresosContent');
 
   if(isMaster){
@@ -3181,9 +3317,7 @@ async function renderEgresosMaster(container){
 
     <!-- Balance por Chapter -->
     <div class="card" style="margin-bottom:1.5rem;">
-      <div class="card-title">📊 Balance por Capítulo
-        <span style="font-size:0.7rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">Presiona los valores para ver detalle</span>
-      </div>
+      <div class="card-title">📊 Balance por Capítulo</div>
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Capítulo</th>
@@ -3194,64 +3328,14 @@ async function renderEgresosMaster(container){
           <th style="text-align:right;">Balance</th>
         </tr></thead>
         <tbody>
-          ${chapterBalances.map(b=>{
-            // Build detail data for cuotas
-            const members=getMembers(b.ch);
-            const cfg=getCuotaCfg(b.ch);
-            const anio=cfg.anio||new Date().getFullYear();
-            const cuotas=getCuotaState(b.ch,anio);
-            const currentYear=new Date().getFullYear();
-            const mes=anio<currentYear?12:new Date().getMonth()+1;
-            const valor=parseFloat(cfg.valor)||0;
-            // Cuotas detail rows
-            const cuotasRows=members.map(m=>{
-              let pagado=0;
-              Object.keys(state.cuotas).forEach(key=>{
-                if(!key.startsWith(b.ch+'_')) return;
-                const keyAnio=parseInt(key.split('_').pop());
-                if(isNaN(keyAnio)||keyAnio<2025) return;
-                const cuotasAnio=state.cuotas[key];
-                const mesesDelAnio=keyAnio<currentYear?12:Math.min(new Date().getMonth()+1,12);
-                for(let i=1;i<=mesesDelAnio;i++) pagado+=getMesAbono(cuotasAnio,m.id,i);
-              });
-              const adeuda=Math.max(0,mes*valor-pagado);
-              return {name:m.name,pagado,adeuda};
-            }).filter(r=>r.pagado>0||r.adeuda>0);
-            // Ingresos comerciales
-            const ingresosRows=(state.ingresos?.[b.ch]||[]).slice().sort((a,c)=>b.ch&&c.fecha?c.fecha.localeCompare(a.fecha):0);
-            // Egresos
-            const egresosRows=(state.egresos?.[b.ch]||[]).slice().sort((a,c)=>c.fecha&&a.fecha?c.fecha.localeCompare(a.fecha):0);
-
-            const cuotasJson=JSON.stringify(cuotasRows).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
-            const ingJson=JSON.stringify(ingresosRows.map(i=>({fecha:i.fecha,cat:i.categoria||'—',desc:i.descripcion||'—',resp:i.responsable||'—',monto:parseFloat(i.monto||0)}))).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
-            const egJson=JSON.stringify(egresosRows.map(e=>({fecha:e.fecha,cat:e.categoria||'—',desc:e.descripcion||'—',resp:e.responsable||'—',monto:parseFloat(e.monto||0)}))).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
-
-            return `<tr id="brow-${b.ch}">
-              <td><strong>${b.name}</strong></td>
-              <td style="text-align:right;">
-                <span class="fin-val-btn" style="color:var(--success);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
-                  onclick="toggleFinDetail('${b.ch}','cuotas','${cuotasJson}')"
-                  title="Ver detalle de cuotas">$${b.totalCuotas.toFixed(2)} ▾</span>
-              </td>
-              <td style="text-align:right;">
-                <span class="fin-val-btn" style="color:var(--gold);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
-                  onclick="toggleFinDetail('${b.ch}','ingresos','${ingJson}')"
-                  title="Ver ingresos comerciales">$${b.totalIngresosComerciales.toFixed(2)} ▾</span>
-              </td>
-              <td style="text-align:right;font-weight:700;color:var(--success);">$${b.totalIngresos.toFixed(2)}</td>
-              <td style="text-align:right;">
-                <span class="fin-val-btn" style="color:var(--danger);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
-                  onclick="toggleFinDetail('${b.ch}','egresos','${egJson}')"
-                  title="Ver egresos">$${b.totalEgresos.toFixed(2)} ▾</span>
-              </td>
-              <td style="text-align:right;font-weight:700;font-size:1rem;color:${b.balance>=0?'var(--success)':'var(--danger)'};">$${b.balance.toFixed(2)}</td>
-            </tr>
-            <tr id="bdetail-${b.ch}" style="display:none;">
-              <td colspan="6" style="padding:0;">
-                <div id="bdetail-content-${b.ch}" style="background:var(--dark);border-top:1px solid var(--border);padding:1rem;"></div>
-              </td>
-            </tr>`;
-          }).join('')}
+          ${chapterBalances.map(b=>`<tr>
+            <td><strong>${b.name}</strong></td>
+            <td style="text-align:right;color:var(--success);">$${b.totalCuotas.toFixed(2)}</td>
+            <td style="text-align:right;color:var(--gold);">$${b.totalIngresosComerciales.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;color:var(--success);">$${b.totalIngresos.toFixed(2)}</td>
+            <td style="text-align:right;color:var(--danger);">$${b.totalEgresos.toFixed(2)}</td>
+            <td style="text-align:right;font-weight:700;font-size:1rem;color:${b.balance>=0?'var(--success)':'var(--danger)'};">$${b.balance.toFixed(2)}</td>
+          </tr>`).join('')}
           <tr style="border-top:2px solid var(--border);">
             <td style="font-weight:700;font-family:Barlow Condensed;letter-spacing:1px;text-transform:uppercase;font-size:0.8rem;color:var(--muted);">TOTAL</td>
             <td></td><td></td>
@@ -3569,91 +3653,27 @@ async function descargarReporteExcel(chapter){
 function togglePaid(){}
 
 // ══════════════════════════════════════════════
-//  DETALLE EXPANDIBLE — BALANCE POR CAPÍTULO
+//  GESTIÓN CLAVE TESORERO (desde MASTER)
 // ══════════════════════════════════════════════
-let _finDetailState={};  // {chId: 'cuotas'|'ingresos'|'egresos'|null}
-
-function toggleFinDetail(chId, tipo, dataJson){
-  const detailRow=document.getElementById('bdetail-'+chId);
-  const contentDiv=document.getElementById('bdetail-content-'+chId);
-  if(!detailRow||!contentDiv) return;
-
-  const prev=_finDetailState[chId];
-  // Si ya está abierto el mismo tipo, cerrar
-  if(prev===tipo && detailRow.style.display!=='none'){
-    detailRow.style.display='none';
-    _finDetailState[chId]=null;
-    return;
-  }
-  _finDetailState[chId]=tipo;
-  detailRow.style.display='table-row';
-
-  let data=[];
-  try{ data=JSON.parse(dataJson.replace(/&quot;/g,'"').replace(/&#39;/g,"'")); }catch(e){}
-
-  let html='';
-  if(tipo==='cuotas'){
-    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin pagos registrados.</p>';}
-    else{
-      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">💵 Detalle de Cuotas por Miembro</div>';
-      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
-      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Miembro</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Pagado</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Adeuda</th></tr></thead><tbody>';
-      data.forEach(r=>{
-        html+=`<tr>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);">${r.name}</td>
-          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--success);font-weight:600;">$${parseFloat(r.pagado||0).toFixed(2)}</td>
-          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:${r.adeuda>0?'var(--danger)':'var(--muted)'};font-weight:600;">$${parseFloat(r.adeuda||0).toFixed(2)}</td>
-        </tr>`;
-      });
-      const totPag=data.reduce((s,r)=>s+parseFloat(r.pagado||0),0);
-      const totAd=data.reduce((s,r)=>s+parseFloat(r.adeuda||0),0);
-      html+=`<tr style="border-top:2px solid var(--border);">
-        <td style="padding:0.4rem 0.6rem;font-weight:700;font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td>
-        <td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--success);">$${totPag.toFixed(2)}</td>
-        <td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:${totAd>0?'var(--danger)':'var(--muted)'};">$${totAd.toFixed(2)}</td>
-      </tr>`;
-      html+='</tbody></table>';
+async function gestionarClaveTesorer(chId, chName){
+  const nueva=prompt(`Establecer / resetear contraseña del tesorero de ${chName}.\n\nIngresa la nueva contraseña (mínimo 4 caracteres).\nDeja en blanco para BORRAR la clave y resetear a "vre2026":`);
+  if(nueva===null) return; // canceló
+  if(nueva!==''&&nueva.length<4){ alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+  showLoading('Guardando...');
+  try{
+    await waitForFb();
+    const existing=await window.fbGet(`chapters/${chId}/config/auth`)||{};
+    if(nueva===''){
+      const {treasurerPassword:_,...rest}=existing;
+      await window.fbSet(`chapters/${chId}/config/auth`,rest);
+      hideLoading();
+      showToast(`✓ Clave de tesorero de ${chName} reseteada a "vre2026".`);
+    } else {
+      await window.fbSet(`chapters/${chId}/config/auth`,{...existing,treasurerPassword:nueva});
+      hideLoading();
+      showToast(`✓ Contraseña del tesorero de ${chName} actualizada.`);
     }
-  } else if(tipo==='ingresos'){
-    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin ingresos comerciales registrados.</p>';}
-    else{
-      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">📈 Ingresos Comerciales</div>';
-      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
-      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Fecha</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Categoría</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Descripción</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Responsable</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Monto</th></tr></thead><tbody>';
-      data.forEach(r=>{
-        html+=`<tr>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap;">${formatDate(r.fecha)}</td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="background:rgba(200,168,75,0.15);color:var(--gold);border:1px solid rgba(200,168,75,0.3);font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:2px;">${r.cat}</span></td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);max-width:180px;">${r.desc}</td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:0.78rem;">${r.resp}</td>
-          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--gold);font-weight:700;">$${parseFloat(r.monto||0).toFixed(2)}</td>
-        </tr>`;
-      });
-      const tot=data.reduce((s,r)=>s+parseFloat(r.monto||0),0);
-      html+=`<tr style="border-top:2px solid var(--border);"><td colspan="4" style="padding:0.4rem 0.6rem;text-align:right;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td><td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--gold);">$${tot.toFixed(2)}</td></tr>`;
-      html+='</tbody></table>';
-    }
-  } else if(tipo==='egresos'){
-    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin egresos registrados.</p>';}
-    else{
-      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--danger);margin-bottom:0.6rem;">📉 Detalle de Egresos</div>';
-      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
-      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Fecha</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Categoría</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Descripción</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Responsable</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Monto</th></tr></thead><tbody>';
-      data.forEach(r=>{
-        html+=`<tr>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap;">${formatDate(r.fecha)}</td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="background:rgba(231,76,60,0.15);color:var(--danger);border:1px solid rgba(231,76,60,0.3);font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:2px;">${r.cat}</span></td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);max-width:180px;">${r.desc}</td>
-          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:0.78rem;">${r.resp}</td>
-          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--danger);font-weight:700;">$${parseFloat(r.monto||0).toFixed(2)}</td>
-        </tr>`;
-      });
-      const tot=data.reduce((s,r)=>s+parseFloat(r.monto||0),0);
-      html+=`<tr style="border-top:2px solid var(--border);"><td colspan="4" style="padding:0.4rem 0.6rem;text-align:right;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td><td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--danger);">$${tot.toFixed(2)}</td></tr>`;
-      html+='</tbody></table>';
-    }
-  }
-  contentDiv.innerHTML=html;
+  }catch(e){hideLoading();showToast('Error al guardar','error');}
 }
 </script>
 </body>
