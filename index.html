@@ -1004,13 +1004,16 @@ function buildNav(){
   const {chapter,role}=currentUser;
   const tabs=document.getElementById('navTabs');tabs.innerHTML='';
   const isMaster=chapter==='MASTER';
-  const isSecretary=role==='secretary';
   const isTreasurer=role==='treasurer';
   const items=[{id:'dashboard',label:'Dashboard'}];
   if(!isMaster&&!isTreasurer){
     items.push({id:'miembros',label:'Tropa'});
     items.push({id:'eventos',label:'Eventos'});
     items.push({id:'asistencia',label:'Asistencia'});
+    items.push({id:'cuotas',label:'Cuotas'});
+  }
+  if(isTreasurer){
+    items.push({id:'miembros',label:'Tropa'});
     items.push({id:'cuotas',label:'Cuotas'});
   }
   if(!isMaster) items.push({id:'egresos',label:'Finanzas'});
@@ -1115,6 +1118,12 @@ function renderDashboard(){
         for(let i=1;i<=mesesA;i++) totalCuotas+=getMesAbono(cA,m.id,i);
       });
     });
+    // Cuotas al día / pendientes
+    let alDiaCnt=0,pendienteCnt=0;
+    members.forEach(m=>{
+      const adeuda=Array.from({length:mes},(_,i)=>i+1).some(mo=>(parseFloat((cuotas[m.id]||{})[mo])||0)<valor);
+      if(!adeuda&&mes>0) alDiaCnt++; else pendienteCnt++;
+    });
     const totalIngresos=totalCuotas+(state.ingresos?.[chapter]||[]).reduce((s,i)=>s+parseFloat(i.monto||0),0);
     const totalEgresos=(state.egresos?.[chapter]||[]).reduce((s,e)=>s+parseFloat(e.monto||0),0);
     const balance=totalIngresos-totalEgresos;
@@ -1133,13 +1142,25 @@ function renderDashboard(){
           <span class="badge badge-gold" style="margin-left:auto;align-self:flex-start;">Firebase</span>
         </div>
       </div>
-      <div class="stats-grid">
+
+      <!-- Stats financieras -->
+      <div class="stats-grid" style="margin-bottom:1rem;">
         <div class="stat-card"><div class="stat-num" style="color:var(--success);">$${totalIngresos.toFixed(2)}</div><div class="stat-label">Total Ingresos</div></div>
         <div class="stat-card"><div class="stat-num" style="color:var(--danger);">$${totalEgresos.toFixed(2)}</div><div class="stat-label">Total Egresos</div></div>
         <div class="stat-card"><div class="stat-num" style="color:${balance>=0?'var(--success)':'var(--danger)'};">$${balance.toFixed(2)}</div><div class="stat-label">Balance</div></div>
-        <div class="stat-card"><div class="stat-num gold">${ingresosCom.length}</div><div class="stat-label">Ing. Comerciales</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:var(--danger);">${(state.egresos?.[chapter]||[]).length}</div><div class="stat-label">Egresos Registrados</div></div>
+        <div class="stat-card"><div class="stat-num gold">$${totalCuotas.toFixed(2)}</div><div class="stat-label">Cuotas Cobradas</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--success);">${alDiaCnt}</div><div class="stat-label">Al Día</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--danger);">${pendienteCnt}</div><div class="stat-label">Cuotas Pendientes</div></div>
       </div>
+
+      <!-- Accesos rápidos -->
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <button class="btn btn-gold" onclick="switchSection('cuotas')">💵 Gestionar Cuotas</button>
+        <button class="btn btn-outline" onclick="switchSection('egresos')">📊 Ver Finanzas</button>
+        <button class="btn btn-outline" onclick="switchSection('miembros')">👥 Ver Tropa</button>
+      </div>
+
+      <!-- Últimos egresos -->
       <div class="card">
         <div class="card-title">Últimos Egresos
           <button class="btn btn-sm btn-danger" onclick="switchSection('egresos')">Ver todo →</button>
@@ -2174,7 +2195,7 @@ function getMesEstadoMiembro(m, mes, anio){
 
 function renderCuotas(){
   const {chapter,role}=currentUser;
-  const canEdit=role==='secretary';
+  const canEdit=role==='secretary'||role==='treasurer';
   const members=getMembers();
   const cfg=getCuotaCfg();
   const anio=cfg.anio||new Date().getFullYear();
