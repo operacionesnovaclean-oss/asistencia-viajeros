@@ -901,6 +901,19 @@ async function loadChapterData(chapter){
   const anio=state.cuotaCfg[chapter].anio||new Date().getFullYear();
   const cuotasDoc=await window.fbGet(`chapters/${chapter}/config/cuotas_${anio}`);
   state.cuotas[`${chapter}_${anio}`]=cuotasDoc||{};
+  // ── Cargar asistencia de todos los eventos para calcular % correctamente ──
+  const evList=state.events[chapter]||[];
+  if(evList.length>0){
+    await Promise.all(evList.map(async ev=>{
+      const key=`${chapter}_${ev.id}`;
+      if(!state.attendance[key]){
+        try{
+          const att=await window.fbGetCol(`chapters/${chapter}/events/${ev.id}/attendance`);
+          state.attendance[key]=att||[];
+        }catch(e){state.attendance[key]=[];}
+      }
+    }));
+  }
   window.updateSync('online');
 }
 
@@ -3168,7 +3181,9 @@ async function renderEgresosMaster(container){
 
     <!-- Balance por Chapter -->
     <div class="card" style="margin-bottom:1.5rem;">
-      <div class="card-title">📊 Balance por Capítulo</div>
+      <div class="card-title">📊 Balance por Capítulo
+        <span style="font-size:0.7rem;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">Presiona los valores para ver detalle</span>
+      </div>
       <div class="table-wrap"><table>
         <thead><tr>
           <th>Capítulo</th>
@@ -3179,14 +3194,64 @@ async function renderEgresosMaster(container){
           <th style="text-align:right;">Balance</th>
         </tr></thead>
         <tbody>
-          ${chapterBalances.map(b=>`<tr>
-            <td><strong>${b.name}</strong></td>
-            <td style="text-align:right;color:var(--success);">$${b.totalCuotas.toFixed(2)}</td>
-            <td style="text-align:right;color:var(--gold);">$${b.totalIngresosComerciales.toFixed(2)}</td>
-            <td style="text-align:right;font-weight:700;color:var(--success);">$${b.totalIngresos.toFixed(2)}</td>
-            <td style="text-align:right;color:var(--danger);">$${b.totalEgresos.toFixed(2)}</td>
-            <td style="text-align:right;font-weight:700;font-size:1rem;color:${b.balance>=0?'var(--success)':'var(--danger)'};">$${b.balance.toFixed(2)}</td>
-          </tr>`).join('')}
+          ${chapterBalances.map(b=>{
+            // Build detail data for cuotas
+            const members=getMembers(b.ch);
+            const cfg=getCuotaCfg(b.ch);
+            const anio=cfg.anio||new Date().getFullYear();
+            const cuotas=getCuotaState(b.ch,anio);
+            const currentYear=new Date().getFullYear();
+            const mes=anio<currentYear?12:new Date().getMonth()+1;
+            const valor=parseFloat(cfg.valor)||0;
+            // Cuotas detail rows
+            const cuotasRows=members.map(m=>{
+              let pagado=0;
+              Object.keys(state.cuotas).forEach(key=>{
+                if(!key.startsWith(b.ch+'_')) return;
+                const keyAnio=parseInt(key.split('_').pop());
+                if(isNaN(keyAnio)||keyAnio<2025) return;
+                const cuotasAnio=state.cuotas[key];
+                const mesesDelAnio=keyAnio<currentYear?12:Math.min(new Date().getMonth()+1,12);
+                for(let i=1;i<=mesesDelAnio;i++) pagado+=getMesAbono(cuotasAnio,m.id,i);
+              });
+              const adeuda=Math.max(0,mes*valor-pagado);
+              return {name:m.name,pagado,adeuda};
+            }).filter(r=>r.pagado>0||r.adeuda>0);
+            // Ingresos comerciales
+            const ingresosRows=(state.ingresos?.[b.ch]||[]).slice().sort((a,c)=>b.ch&&c.fecha?c.fecha.localeCompare(a.fecha):0);
+            // Egresos
+            const egresosRows=(state.egresos?.[b.ch]||[]).slice().sort((a,c)=>c.fecha&&a.fecha?c.fecha.localeCompare(a.fecha):0);
+
+            const cuotasJson=JSON.stringify(cuotasRows).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+            const ingJson=JSON.stringify(ingresosRows.map(i=>({fecha:i.fecha,cat:i.categoria||'—',desc:i.descripcion||'—',resp:i.responsable||'—',monto:parseFloat(i.monto||0)}))).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+            const egJson=JSON.stringify(egresosRows.map(e=>({fecha:e.fecha,cat:e.categoria||'—',desc:e.descripcion||'—',resp:e.responsable||'—',monto:parseFloat(e.monto||0)}))).replace(/'/g,"&#39;").replace(/"/g,'&quot;');
+
+            return `<tr id="brow-${b.ch}">
+              <td><strong>${b.name}</strong></td>
+              <td style="text-align:right;">
+                <span class="fin-val-btn" style="color:var(--success);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
+                  onclick="toggleFinDetail('${b.ch}','cuotas','${cuotasJson}')"
+                  title="Ver detalle de cuotas">$${b.totalCuotas.toFixed(2)} ▾</span>
+              </td>
+              <td style="text-align:right;">
+                <span class="fin-val-btn" style="color:var(--gold);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
+                  onclick="toggleFinDetail('${b.ch}','ingresos','${ingJson}')"
+                  title="Ver ingresos comerciales">$${b.totalIngresosComerciales.toFixed(2)} ▾</span>
+              </td>
+              <td style="text-align:right;font-weight:700;color:var(--success);">$${b.totalIngresos.toFixed(2)}</td>
+              <td style="text-align:right;">
+                <span class="fin-val-btn" style="color:var(--danger);cursor:pointer;font-weight:700;text-decoration:underline;text-decoration-style:dotted;"
+                  onclick="toggleFinDetail('${b.ch}','egresos','${egJson}')"
+                  title="Ver egresos">$${b.totalEgresos.toFixed(2)} ▾</span>
+              </td>
+              <td style="text-align:right;font-weight:700;font-size:1rem;color:${b.balance>=0?'var(--success)':'var(--danger)'};">$${b.balance.toFixed(2)}</td>
+            </tr>
+            <tr id="bdetail-${b.ch}" style="display:none;">
+              <td colspan="6" style="padding:0;">
+                <div id="bdetail-content-${b.ch}" style="background:var(--dark);border-top:1px solid var(--border);padding:1rem;"></div>
+              </td>
+            </tr>`;
+          }).join('')}
           <tr style="border-top:2px solid var(--border);">
             <td style="font-weight:700;font-family:Barlow Condensed;letter-spacing:1px;text-transform:uppercase;font-size:0.8rem;color:var(--muted);">TOTAL</td>
             <td></td><td></td>
@@ -3502,6 +3567,94 @@ async function descargarReporteExcel(chapter){
 }
 
 function togglePaid(){}
+
+// ══════════════════════════════════════════════
+//  DETALLE EXPANDIBLE — BALANCE POR CAPÍTULO
+// ══════════════════════════════════════════════
+let _finDetailState={};  // {chId: 'cuotas'|'ingresos'|'egresos'|null}
+
+function toggleFinDetail(chId, tipo, dataJson){
+  const detailRow=document.getElementById('bdetail-'+chId);
+  const contentDiv=document.getElementById('bdetail-content-'+chId);
+  if(!detailRow||!contentDiv) return;
+
+  const prev=_finDetailState[chId];
+  // Si ya está abierto el mismo tipo, cerrar
+  if(prev===tipo && detailRow.style.display!=='none'){
+    detailRow.style.display='none';
+    _finDetailState[chId]=null;
+    return;
+  }
+  _finDetailState[chId]=tipo;
+  detailRow.style.display='table-row';
+
+  let data=[];
+  try{ data=JSON.parse(dataJson.replace(/&quot;/g,'"').replace(/&#39;/g,"'")); }catch(e){}
+
+  let html='';
+  if(tipo==='cuotas'){
+    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin pagos registrados.</p>';}
+    else{
+      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">💵 Detalle de Cuotas por Miembro</div>';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Miembro</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Pagado</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Adeuda</th></tr></thead><tbody>';
+      data.forEach(r=>{
+        html+=`<tr>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);">${r.name}</td>
+          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--success);font-weight:600;">$${parseFloat(r.pagado||0).toFixed(2)}</td>
+          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:${r.adeuda>0?'var(--danger)':'var(--muted)'};font-weight:600;">$${parseFloat(r.adeuda||0).toFixed(2)}</td>
+        </tr>`;
+      });
+      const totPag=data.reduce((s,r)=>s+parseFloat(r.pagado||0),0);
+      const totAd=data.reduce((s,r)=>s+parseFloat(r.adeuda||0),0);
+      html+=`<tr style="border-top:2px solid var(--border);">
+        <td style="padding:0.4rem 0.6rem;font-weight:700;font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td>
+        <td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--success);">$${totPag.toFixed(2)}</td>
+        <td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:${totAd>0?'var(--danger)':'var(--muted)'};">$${totAd.toFixed(2)}</td>
+      </tr>`;
+      html+='</tbody></table>';
+    }
+  } else if(tipo==='ingresos'){
+    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin ingresos comerciales registrados.</p>';}
+    else{
+      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:0.6rem;">📈 Ingresos Comerciales</div>';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Fecha</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Categoría</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Descripción</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Responsable</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Monto</th></tr></thead><tbody>';
+      data.forEach(r=>{
+        html+=`<tr>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap;">${formatDate(r.fecha)}</td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="background:rgba(200,168,75,0.15);color:var(--gold);border:1px solid rgba(200,168,75,0.3);font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:2px;">${r.cat}</span></td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);max-width:180px;">${r.desc}</td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:0.78rem;">${r.resp}</td>
+          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--gold);font-weight:700;">$${parseFloat(r.monto||0).toFixed(2)}</td>
+        </tr>`;
+      });
+      const tot=data.reduce((s,r)=>s+parseFloat(r.monto||0),0);
+      html+=`<tr style="border-top:2px solid var(--border);"><td colspan="4" style="padding:0.4rem 0.6rem;text-align:right;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td><td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--gold);">$${tot.toFixed(2)}</td></tr>`;
+      html+='</tbody></table>';
+    }
+  } else if(tipo==='egresos'){
+    if(data.length===0){html='<p style="color:var(--muted);font-size:0.82rem;">Sin egresos registrados.</p>';}
+    else{
+      html='<div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--danger);margin-bottom:0.6rem;">📉 Detalle de Egresos</div>';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">';
+      html+='<thead><tr><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Fecha</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Categoría</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Descripción</th><th style="text-align:left;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Responsable</th><th style="text-align:right;color:var(--muted);padding:0.3rem 0.6rem;border-bottom:1px solid var(--border);">Monto</th></tr></thead><tbody>';
+      data.forEach(r=>{
+        html+=`<tr>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);white-space:nowrap;">${formatDate(r.fecha)}</td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="background:rgba(231,76,60,0.15);color:var(--danger);border:1px solid rgba(231,76,60,0.3);font-size:0.65rem;padding:0.15rem 0.4rem;border-radius:2px;">${r.cat}</span></td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);max-width:180px;">${r.desc}</td>
+          <td style="padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--muted);font-size:0.78rem;">${r.resp}</td>
+          <td style="text-align:right;padding:0.3rem 0.6rem;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--danger);font-weight:700;">$${parseFloat(r.monto||0).toFixed(2)}</td>
+        </tr>`;
+      });
+      const tot=data.reduce((s,r)=>s+parseFloat(r.monto||0),0);
+      html+=`<tr style="border-top:2px solid var(--border);"><td colspan="4" style="padding:0.4rem 0.6rem;text-align:right;font-size:0.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total</td><td style="text-align:right;padding:0.4rem 0.6rem;font-weight:700;color:var(--danger);">$${tot.toFixed(2)}</td></tr>`;
+      html+='</tbody></table>';
+    }
+  }
+  contentDiv.innerHTML=html;
+}
 </script>
 </body>
 </html>
