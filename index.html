@@ -663,8 +663,15 @@ const state={members:{},events:{},attendance:{},cuotas:{},cuotaCfg:{},ingresos:{
 // (documento meta/chapters) para que el Administrador Nacional pueda crear
 // o eliminar capítulos sin tocar el código.
 async function syncChaptersFromCloud(){
+  // No bloquea el arranque de la app: si Firebase todavía no está listo
+  // (o nunca llega a cargar), simplemente nos quedamos con la lista local
+  // (que ya incluye Pedro Carbo) y lo reintentamos en segundo plano si
+  // Firebase avisa que está listo más tarde.
+  if(typeof window.fbGet==='undefined'){
+    window.addEventListener('fbReady',()=>{ syncChaptersFromCloud(); },{once:true});
+    return;
+  }
   try{
-    await waitForFb();
     const cloudChapters=await window.fbGet('meta/chapters');
     if(cloudChapters && Object.keys(cloudChapters).length){
       Object.keys(CHAPTERS).forEach(k=>delete CHAPTERS[k]);
@@ -673,7 +680,7 @@ async function syncChaptersFromCloud(){
       // Primera vez: sembrar Firestore con la lista actual por defecto
       await window.fbSetReplace('meta/chapters',{...CHAPTERS});
     }
-  }catch(e){ console.error('No se pudo sincronizar la lista de capítulos:',e); }
+  }catch(e){ console.error('No se pudo sincronizar la lista de capítulos con Firebase (se usa la lista local mientras tanto):',e); }
   populateChapterSelects();
 }
 
@@ -989,7 +996,7 @@ async function waitForFb(){
 }
 
 window.addEventListener('load',async()=>{
-  await syncChaptersFromCloud(); // trae capítulos creados/eliminados por el admin antes de mostrar login o dashboard
+  syncChaptersFromCloud(); // en paralelo, sin bloquear: actualiza los <select> cuando llegue (o cuando Firebase esté listo)
   const sess=localStorage.getItem('vre_session');
   if(sess){
     try{
