@@ -362,6 +362,31 @@ tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,0.0
         <div class="form-group"><label>Teléfono</label><input type="tel" id="mPhone" placeholder="+593..."></div>
         <div class="form-group"><label>Cédula / ID</label><input type="text" id="mCedula" placeholder="Número de cédula"></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha de Nacimiento</label><input type="date" id="mFechaNacimiento"></div>
+      </div>
+
+      <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🪪 Licencia de Conducir</div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo de Licencia</label>
+          <select id="mLicenciaTipo">
+            <option value="">— No especificado —</option>
+            <option>Tipo A</option>
+            <option>Tipo A1</option>
+            <option>Tipo B</option>
+            <option>Tipo C</option>
+            <option>Tipo C1</option>
+            <option>Tipo D</option>
+            <option>Tipo D1</option>
+            <option>Tipo E</option>
+            <option>Tipo E1</option>
+            <option>Tipo F</option>
+            <option>Tipo G</option>
+            <option>Profesional</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fecha de Caducidad</label><input type="date" id="mLicenciaCaducidad"></div>
+      </div>
 
       <div style="font-family:Barlow Condensed;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin:1.2rem 0 0.8rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">🏍️ Cargo y Clasificación</div>
       <div class="form-row">
@@ -1391,12 +1416,13 @@ function renderMembers(){
 function openAddMember(){
   editingMemberId=null;
   document.getElementById('modalMemberTitle').textContent='Agregar Miembro';
-  ['mName','mNick','mPhone','mCedula','mBike','mPlaca','mYear','mEmergNombre','mEmergTel'].forEach(id=>{
+  ['mName','mNick','mPhone','mCedula','mFechaNacimiento','mLicenciaCaducidad','mBike','mPlaca','mYear','mEmergNombre','mEmergTel'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   document.getElementById('mRank').value='Member Full';
   document.getElementById('mCargo').value='';
   document.getElementById('mTipo').value='Tropa';
+  document.getElementById('mLicenciaTipo').value='';
   document.getElementById('mEmergParentesco').value='';
   document.getElementById('mSangre').value='';
   document.getElementById('mCuotasMes').value='';
@@ -1417,6 +1443,9 @@ function editMember(id){
   document.getElementById('mNick').value=m.nick||'';
   document.getElementById('mPhone').value=m.phone||'';
   document.getElementById('mCedula').value=m.cedula||'';
+  document.getElementById('mFechaNacimiento').value=m.fechaNacimiento||'';
+  document.getElementById('mLicenciaTipo').value=m.licenciaTipo||'';
+  document.getElementById('mLicenciaCaducidad').value=m.licenciaCaducidad||'';
   document.getElementById('mRank').value=m.rank||'Member Full';
   document.getElementById('mCargo').value=m.cargo||'';
   document.getElementById('mTipo').value=m.tipo||'Tropa';
@@ -1449,6 +1478,9 @@ async function saveMember(){
     nick:document.getElementById('mNick').value.trim(),
     phone:document.getElementById('mPhone').value.trim(),
     cedula:document.getElementById('mCedula').value.trim(),
+    fechaNacimiento:document.getElementById('mFechaNacimiento').value,
+    licenciaTipo:document.getElementById('mLicenciaTipo').value,
+    licenciaCaducidad:document.getElementById('mLicenciaCaducidad').value,
     rank:document.getElementById('mRank').value,
     cargo:document.getElementById('mCargo').value,
     tipo:document.getElementById('mTipo').value,
@@ -1658,8 +1690,10 @@ function abrirHojaVida(memberId){
     +'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;">Datos Personales</div>'
     +(member.phone?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">📞 '+member.phone+'</div>':'')
     +(member.cedula?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🪪 '+member.cedula+'</div>':'')
+    +(member.fechaNacimiento?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🎂 '+member.fechaNacimiento+'</div>':'')
     +(member.sangre?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🩸 Tipo '+member.sangre+'</div>':'')
     +(member.bike?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🏍️ '+member.bike+(member.placa?' ('+member.placa+')':'')+'</div>':'')
+    +(member.licenciaTipo?'<div style="font-size:0.82rem;margin-bottom:0.3rem;">🚗 Licencia '+member.licenciaTipo+(member.licenciaCaducidad?' · vence '+member.licenciaCaducidad:'')+(member.licenciaCaducidad&&new Date(member.licenciaCaducidad)<new Date()?' <span class="badge badge-red" style="margin-left:0.3rem;">VENCIDA</span>':'')+'</div>':'')
     +'</div>'
     +(member.emergNombre?'<div><div style="font-family:Barlow Condensed;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;">Contacto de Emergencia</div>'
     +'<div style="font-size:0.82rem;margin-bottom:0.3rem;">👤 '+member.emergNombre+(member.emergParentesco?' ('+member.emergParentesco+')':'')+'</div>'
