@@ -1180,9 +1180,12 @@ function getChapterStats(ch){
 
   let alDia=0;
   members.forEach(m=>{
-    const pg=cuotas[m.id]||{};
-    const adeuda=Array.from({length:mes},(_,i)=>i+1).some(mo=>(parseFloat(pg[mo])||0)<valor);
-    if(!adeuda&&mes>0) alDia++;
+    let adeuda=false;
+    for(let mo=1;mo<=mes;mo++){
+      if(getMesEstadoMiembro(m,mo,anio)!=='normal'||esMesCondonado(cuotas,m.id,mo)) continue;
+      if(getMesAbono(cuotas,m.id,mo)<valor) adeuda=true;
+    }
+    if(!adeuda) alDia++;
   });
 
   const totalAtt=events.reduce((s,ev)=>{
@@ -1244,8 +1247,12 @@ function renderDashboard(){
     // Cuotas al día / pendientes
     let alDiaCnt=0,pendienteCnt=0;
     members.forEach(m=>{
-      const adeuda=Array.from({length:mes},(_,i)=>i+1).some(mo=>(parseFloat((cuotas[m.id]||{})[mo])||0)<valor);
-      if(!adeuda&&mes>0) alDiaCnt++; else pendienteCnt++;
+      let adeuda=false;
+      for(let mo=1;mo<=mes;mo++){
+        if(getMesEstadoMiembro(m,mo,anio)!=='normal'||esMesCondonado(cuotas,m.id,mo)) continue;
+        if(getMesAbono(cuotas,m.id,mo)<valor) adeuda=true;
+      }
+      if(adeuda) pendienteCnt++; else alDiaCnt++;
     });
     const totalIngresos=totalCuotas+(state.ingresos?.[chapter]||[]).reduce((s,i)=>s+parseFloat(i.monto||0),0);
     const totalEgresos=(state.egresos?.[chapter]||[]).reduce((s,e)=>s+parseFloat(e.monto||0),0);
@@ -2136,7 +2143,7 @@ async function abrirConsolidadoMember(memberId){
     grandTotalAdeudado += totalAdAnio;
     grandTotalCondonado += totalCondAnio;
 
-    const estadoAnio = totalAdAnio===0&&totalPagAnio>0?'Al día':totalAdAnio>0&&totalPagAnio>0?'Parcial':totalAdAnio>0?'Pendiente':'—';
+    const estadoAnio = totalAdAnio===0?'Al día':totalPagAnio>0?'Parcial':'Pendiente';
     const colorEstado = totalAdAnio===0&&totalPagAnio>0?'var(--success)':totalAdAnio>0?'var(--danger)':'var(--muted)';
 
     yearsHTML += '<div style="margin-bottom:1.2rem;">'
@@ -2488,7 +2495,7 @@ function renderCuotas(){
             mesesObligatorios++;
           }
           const totalAd=Math.max(0,mesesObligatorios*valor-totalPag);
-          const alDia=totalAd===0&&mesesObligatorios>0;
+          const alDia=totalAd===0;
           return `<tr>
             <td>
               <div style="font-weight:500;font-size:0.85rem;cursor:pointer;color:var(--text);text-decoration:underline;text-decoration-color:var(--border);"
@@ -3011,8 +3018,12 @@ function _renderReporteChapters(){
     const cuotas=getCuotaState(id,anio);
     let alDia=0;
     members.forEach(m=>{
-      const adeuda=Array.from({length:mes},(_,i)=>i+1).some(mo=>(parseFloat((cuotas[m.id]||{})[mo])||0)<valor);
-      if(!adeuda&&mes>0) alDia++;
+      let adeuda=false;
+      for(let mo=1;mo<=mes;mo++){
+        if(getMesEstadoMiembro(m,mo,anio)!=='normal'||esMesCondonado(cuotas,m.id,mo)) continue;
+        if(getMesAbono(cuotas,m.id,mo)<valor) adeuda=true;
+      }
+      if(!adeuda) alDia++;
     });
 
     const isOpen=!!_reporteOpen[id];
@@ -3193,21 +3204,24 @@ function descargarCuotasPDF(chapter){
   const mesActual=new Date().getMonth()+1;
   const mesesTranscurridos=anio<new Date().getFullYear()?12:mesActual;
 
-  let totalCobrado=0,totalAdeudado=0,alDiaCount=0;
+  let totalCobrado=0,totalAdeudado=0,totalEsperado=0,alDiaCount=0;
   const memberStats=members.map(m=>{
-    let totalPag=0;
+    let totalPag=0,totalAd=0,mesesObligatorios=0;
     const meses=MONTHS.map((_,i)=>{
       const mes=i+1;
       const ab=getMesAbono(cuotas,m.id,mes);
       const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
-      if(!esFuturo) totalPag+=ab;
-      return {mes,ab,esFuturo};
+      const estadoM=getMesEstadoMiembro(m,mes,anio);
+      const condonado=esMesCondonado(cuotas,m.id,mes)||estadoM==='condonado_grupal';
+      const obligado=!esFuturo&&estadoM==='normal'&&!condonado;
+      if(obligado){mesesObligatorios++;totalPag+=ab;totalAd+=Math.max(0,valor-ab);}
+      return {mes,ab,esFuturo,estadoM,condonado,obligado};
     });
-    const totalAd=Math.max(0,mesesTranscurridos*valor-totalPag);
-    const alDia=totalAd===0&&mesesTranscurridos>0;
+    const alDia=totalAd===0;
     if(alDia) alDiaCount++;
     totalCobrado+=totalPag;
     totalAdeudado+=totalAd;
+    totalEsperado+=mesesObligatorios*valor;
     return {m,meses,totalPag,totalAd,alDia};
   });
   const pct=members.length>0?Math.round(alDiaCount/members.length*100):0;
@@ -3269,7 +3283,7 @@ function descargarCuotasPDF(chapter){
       <div class="stat-l">Cumplimiento</div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>=80?'#27ae60':pct>=50?'#e67e22':'#e74c3c'};"></div></div>
     </div>
-    <div class="stat"><div class="stat-n blue">$${(members.length*mesesTranscurridos*valor).toFixed(2)}</div><div class="stat-l">Esperado</div></div>
+    <div class="stat"><div class="stat-n blue">$${totalEsperado.toFixed(2)}</div><div class="stat-l">Esperado</div></div>
   </div>
 
   <table>
@@ -3290,8 +3304,11 @@ function descargarCuotasPDF(chapter){
       <tr>
         <td class="left"><strong>${m.name}</strong>${m.nick?`<br><span style="color:#999;font-size:8px;">"${m.nick}"</span>`:''}</td>
         <td class="left" style="color:#888;font-size:8px;">${m.rank||'—'}</td>
-        ${meses.map(({mes,ab,esFuturo})=>{
+        ${meses.map(({mes,ab,esFuturo,estadoM,condonado})=>{
           if(esFuturo) return '<td class="futuro">—</td>';
+          if(estadoM==='simpatizante') return '<td style="text-align:center;color:#777;">S</td>';
+          if(estadoM==='licencia') return '<td style="text-align:center;color:#2980b9;">L</td>';
+          if(condonado) return '<td style="text-align:center;color:#c8a84b;">C</td>';
           if(ab>=valor&&valor>0) return '<td class="ok">✓</td>';
           if(ab>0&&ab<valor) return `<td class="parcial">$${ab.toFixed(0)}</td>`;
           return '<td class="no">✕</td>';
@@ -3306,9 +3323,11 @@ function descargarCuotasPDF(chapter){
           const mes=i+1;
           const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
           if(esFuturo) return '<td style="color:#ccc;">—</td>';
-          let cobMes=0;
-          members.forEach(m=>{cobMes+=getMesAbono(cuotas,m.id,mes);});
-          const espMes=members.length*valor;
+          let cobMes=0,espMes=0;
+          members.forEach(m=>{
+            const est=getMesEstadoMiembro(m,mes,anio);
+            if(est==='normal'&&!esMesCondonado(cuotas,m.id,mes)){cobMes+=getMesAbono(cuotas,m.id,mes);espMes+=valor;}
+          });
           const pctMes=espMes>0?Math.round(cobMes/espMes*100):0;
           return `<td style="color:${pctMes>=100?'#27ae60':pctMes>=50?'#e67e22':'#e74c3c'};font-size:9px;">$${cobMes.toFixed(0)}<br><span style="font-size:7px;">${pctMes}%</span></td>`;
         }).join('')}
@@ -3347,23 +3366,28 @@ function descargarCuotasExcel(chapter){
   csv+=`Reporte de Cuotas ${anio}\tGenerado: ${new Date().toLocaleDateString('es-EC')}\tCuota mensual: $${valor.toFixed(2)}\n\n`;
 
   // Resumen
-  let totalCobrado=0,totalAdeudado=0,alDiaCount=0;
+  let totalCobrado=0,totalAdeudado=0,totalEsperado=0,alDiaCount=0;
   const memberRows=members.map(m=>{
-    let totalPag=0;
+    let totalPag=0,mesesObligatorios=0;
     const cells=MONTHS.map((_,i)=>{
       const mes=i+1;
       const ab=getMesAbono(cuotas,m.id,mes);
       const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
-      if(!esFuturo) totalPag+=ab;
+      const estadoM=getMesEstadoMiembro(m,mes,anio);
+      const condonado=esMesCondonado(cuotas,m.id,mes)||estadoM==='condonado_grupal';
+      if(!esFuturo&&estadoM==='normal'&&!condonado){totalPag+=ab;mesesObligatorios++;}
       if(esFuturo) return '—';
+      if(estadoM==='simpatizante') return 'Simpatizante';
+      if(estadoM==='licencia') return 'Licencia';
+      if(condonado) return 'Condonado';
       if(ab>=valor&&valor>0) return 'Pagado';
       if(ab>0&&ab<valor) return `$${ab.toFixed(2)} (parcial)`;
       return 'Pendiente';
     });
-    const totalAd=Math.max(0,mesesTranscurridos*valor-totalPag);
-    const alDia=totalAd===0&&mesesTranscurridos>0;
+    const totalAd=Math.max(0,mesesObligatorios*valor-totalPag);
+    const alDia=totalAd===0;
     if(alDia) alDiaCount++;
-    totalCobrado+=totalPag; totalAdeudado+=totalAd;
+    totalCobrado+=totalPag; totalAdeudado+=totalAd; totalEsperado+=mesesObligatorios*valor;
     return {m,cells,totalPag,totalAd,alDia};
   });
 
@@ -3372,7 +3396,7 @@ function descargarCuotasExcel(chapter){
   csv+=`Total Adeudado${sep}$${totalAdeudado.toFixed(2)}\n`;
   csv+=`Miembros Al Día${sep}${alDiaCount} de ${members.length}\n`;
   csv+=`Cumplimiento${sep}${members.length>0?Math.round(alDiaCount/members.length*100):0}%\n`;
-  csv+=`Esperado a la fecha${sep}$${(members.length*mesesTranscurridos*valor).toFixed(2)}\n\n`;
+  csv+=`Esperado a la fecha${sep}$${totalEsperado.toFixed(2)}\n\n`;
 
   // Tabla de cuotas
   csv+=`DETALLE POR MIEMBRO\n`;
@@ -3602,6 +3626,7 @@ async function renderEgresos(){
         💰 Ingresos Comerciales
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
           ${canEdit?'<button class="btn btn-sm btn-gold" onclick="abrirModalIngreso()">+ Nuevo Ingreso</button>':''}
+          <button class="btn btn-sm btn-outline" onclick="descargarReportePDF('${chapter}')">⬇ PDF Ingresos y Egresos</button>
         </div>
       </div>
       ${ingresosComerciales.length===0
@@ -3892,18 +3917,21 @@ async function descargarReportePDF(chapter){
   const members=getMembers(chapter);
   const cuotas=getCuotaState(chapter,anio);
   const egresos=(state.egresos?.[chapter]||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const ingresos=(state.ingresos?.[chapter]||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const mesActual=new Date().getMonth()+1;
   const mesesTranscurridos=anio<new Date().getFullYear()?12:mesActual;
 
   let totalCobrado=0,totalAdeudado=0;
   members.forEach(m=>{
     for(let i=1;i<=mesesTranscurridos;i++){
+      if(getMesEstadoMiembro(m,i,anio)!=='normal'||esMesCondonado(cuotas,m.id,i)) continue;
       const ab=getMesAbono(cuotas,m.id,i);
       totalCobrado+=ab; totalAdeudado+=Math.max(0,valor-ab);
     }
   });
+  const totalIngresos=ingresos.reduce((s,i)=>s+parseFloat(i.monto||0),0);
   const totalEgresos=egresos.reduce((s,e)=>s+parseFloat(e.monto||0),0);
-  const balance=totalCobrado-totalEgresos;
+  const balance=totalCobrado+totalIngresos-totalEgresos;
 
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
   <style>
@@ -3940,10 +3968,11 @@ async function descargarReportePDF(chapter){
   </div>
 
   <div class="stats">
-    <div class="stat"><div class="stat-n green">$${totalCobrado.toFixed(2)}</div><div class="stat-l">Total Cobrado</div></div>
+    <div class="stat"><div class="stat-n green">$${totalCobrado.toFixed(2)}</div><div class="stat-l">Cuotas cobradas</div></div>
     <div class="stat"><div class="stat-n red">$${totalAdeudado.toFixed(2)}</div><div class="stat-l">Total Adeudado</div></div>
+    <div class="stat"><div class="stat-n green">$${totalIngresos.toFixed(2)}</div><div class="stat-l">Ingresos Comerciales</div></div>
     <div class="stat"><div class="stat-n red">$${totalEgresos.toFixed(2)}</div><div class="stat-l">Total Egresos</div></div>
-    <div class="stat"><div class="stat-n ${balance>=0?'green':'red'}">$${balance.toFixed(2)}</div><div class="stat-l">Balance</div></div>
+    <div class="stat"><div class="stat-n ${balance>=0?'green':'red'}">$${balance.toFixed(2)}</div><div class="stat-l">Balance (cuotas + ingresos - egresos)</div></div>
     <div class="stat"><div class="stat-n blue">${members.length}</div><div class="stat-l">Miembros</div></div>
   </div>
 
@@ -3955,15 +3984,23 @@ async function descargarReportePDF(chapter){
       const cells=MONTHS.map((_,i)=>{
         const mes=i+1; const ab=getMesAbono(cuotas,m.id,mes);
         const esFuturo=anio===new Date().getFullYear()&&mes>mesActual;
-        if(!esFuturo) totalPag+=ab;
+        const estadoM=getMesEstadoMiembro(m,mes,anio);
+        const condonado=esMesCondonado(cuotas,m.id,mes)||estadoM==='condonado_grupal';
+        const obligado=estadoM==='normal'&&!condonado;
+        if(!esFuturo&&obligado) totalPag+=ab;
         const pagado=ab>=valor&&valor>0; const parcial=ab>0&&ab<valor;
         if(esFuturo) return '<td style="text-align:center;color:#ccc;">—</td>';
+        if(estadoM==='simpatizante') return '<td style="text-align:center;color:#777;">S</td>';
+        if(estadoM==='licencia') return '<td style="text-align:center;color:#2980b9;">L</td>';
+        if(condonado) return '<td style="text-align:center;color:#c8a84b;">C</td>';
         if(pagado) return '<td style="text-align:center;color:#27ae60;font-weight:bold;">✓</td>';
         if(parcial) return `<td style="text-align:center;color:#e67e22;">$${ab.toFixed(0)}</td>`;
         return '<td style="text-align:center;color:#e74c3c;">✕</td>';
       }).join('');
-      const totalAd=Math.max(0,mesesTranscurridos*valor-totalPag);
-      const alDia=totalAd===0&&mesesTranscurridos>0;
+      let mesesObligatorios=0;
+      for(let i=1;i<=mesesTranscurridos;i++){if(getMesEstadoMiembro(m,i,anio)==='normal'&&!esMesCondonado(cuotas,m.id,i))mesesObligatorios++;}
+      const totalAd=Math.max(0,mesesObligatorios*valor-totalPag);
+      const alDia=totalAd===0;
       return `<tr><td><b>${m.name}</b>${m.nick?` "${m.nick}"`:''}${m.rank?`<br><span style="color:#888;font-size:9px;">${m.rank}</span>`:''}</td>${cells}
         <td style="text-align:right;color:#27ae60;font-weight:bold;">$${totalPag.toFixed(2)}</td>
         <td style="text-align:right;color:${totalAd>0?'#e74c3c':'#888'};font-weight:bold;">$${totalAd.toFixed(2)}</td>
@@ -3971,6 +4008,14 @@ async function descargarReportePDF(chapter){
       </tr>`;
     }).join('')}</tbody>
   </table>
+
+  <h2>INGRESOS COMERCIALES (${ingresos.length} registros)</h2>
+  ${ingresos.length===0?'<p style="color:#888;font-size:10px;">No hay ingresos comerciales registrados.</p>':`
+  <table>
+    <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Responsable</th><th style="text-align:right;">Monto</th></tr></thead>
+    <tbody>${ingresos.map(i=>`<tr><td>${formatDate(i.fecha)}</td><td>${i.categoria||'—'}</td><td>${i.descripcion||'—'}</td><td>${i.responsable||'—'}</td><td style="text-align:right;color:#27ae60;font-weight:bold;">$${parseFloat(i.monto||0).toFixed(2)}</td></tr>`).join('')}
+    <tr><td colspan="4" style="text-align:right;font-weight:bold;">TOTAL INGRESOS COMERCIALES</td><td style="text-align:right;font-weight:bold;color:#27ae60;">$${totalIngresos.toFixed(2)}</td></tr></tbody>
+  </table>`}
 
   <h2>EGRESOS (${egresos.length} registros)</h2>
   ${egresos.length===0?'<p style="color:#888;font-size:10px;">No hay egresos registrados.</p>':`
